@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#06080c">
+<title>Sensei · телефон</title>
+<style>
+:root{--bg:#06080c;--tx:#e9edf5;--mu:#8791a5;--ok:#3ef2b0;--bad:#ff4d5e;--warn:#ffb020;--cy:#4cc9f0;--gold:#ffc857;--pink:#ff5ca8;--line:rgba(255,255,255,.1)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 -apple-system,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 120px 0 var(--glow,transparent);transition:box-shadow .5s}
+body.ok{--glow:rgba(62,242,176,.35)} body.flow{--glow:rgba(255,200,87,.4)} body.warn{--glow:rgba(255,176,32,.45)} body.bad{--glow:rgba(255,77,94,.65)} body.pass{--glow:rgba(76,201,240,.4)}
+body.bad{animation:blink .8s infinite} @keyframes blink{50%{background:#2a0a10}}
+.screen{display:none;height:100%;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px}
+.screen.on{display:flex}
+h1{font-size:30px;letter-spacing:-.02em}
+p{color:var(--mu);max-width:34ch}
+.btn{width:100%;max-width:360px;padding:17px;border-radius:16px;font-size:18px;font-weight:700;border:0;color:#04110c;background:linear-gradient(90deg,var(--ok),var(--cy))}
+.btn2{width:100%;max-width:360px;padding:14px;border-radius:14px;font-size:16px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--tx)}
+.timer{font:700 76px/1 ui-monospace,Menlo,monospace;letter-spacing:-.03em}
+.state{font:700 14px ui-monospace,Menlo,monospace;letter-spacing:.12em;padding:8px 16px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
+.say{min-height:3em;font-size:17px;max-width:30ch}
+.goal{color:var(--mu);font-size:14px;max-width:32ch}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--mu);display:inline-block;margin-right:6px}
+.dot.on{background:var(--ok)}
+.foot{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 18px}
+.small{font-size:12.5px;color:var(--mu)}
+.modal{position:fixed;inset:0;background:rgba(3,5,9,.94);display:none;flex-direction:column;justify-content:center;align-items:center;gap:12px;padding:24px;text-align:center;z-index:9}
+.modal.on{display:flex}
+.ask{display:flex;gap:8px;width:100%;max-width:360px}
+.ask input{flex:1;padding:13px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--tx);font-size:16px}
+.ask button{padding:0 16px;border-radius:12px;border:0;background:var(--cy);color:#04101a;font-weight:700}
+</style>
+</head>
+<body>
+<section class="screen on" id="intro">
+  <h1>📱 Sensei на телефоне</h1>
+  <p>Нажми «Подключиться», положи телефон рядом и <b>выключи экран</b> — так и надо. Если включишь его или возьмёшь в руки, Sensei на компьютере это заметит.</p>
+  <p class="small">Перед тем как выключить экран, оставь открытой эту страницу — тогда я замечу, когда телефон включат.</p>
+  <button class="btn" id="go">Подключиться</button>
+  <p class="small" id="introErr"></p>
+</section>
+
+<section class="screen" id="main">
+  <div class="state" id="state">ОЖИДАНИЕ</div>
+  <div class="timer" id="timer">--:--</div>
+  <div class="say" id="say">Начни сессию на компьютере.</div>
+  <div class="goal" id="goal"></div>
+  <div class="foot">
+    <button class="btn2" id="callBtn">📞 Мне звонят / срочный звонок</button>
+    <div class="ask"><input id="askIn" placeholder="Спросить учителя…" enterkeyhint="send"><button id="askBtn">→</button></div>
+    <div class="small"><span class="dot" id="link"></span><span id="linkT">подключаюсь…</span></div>
+  </div>
+</section>
+
+<div class="modal" id="why">
+  <h1>Что это было?</h1>
+  <p>Ты уходил с экрана Sensei. Скажи честно — учитель это учтёт.</p>
+  <button class="btn2" data-r="call">📞 Это был звонок</button>
+  <button class="btn2" data-r="locked">📴 Я просто выключил экран</button>
+  <button class="btn2" data-r="distracted">😬 Отвлёкся</button>
+</div>
+
+<script>
+const T = new URLSearchParams(location.search).get('t') || '';
+const API = '/api/phone/ping?t=' + encodeURIComponent(T);
+const $ = s => document.querySelector(s);
+let queue = [{kind:'hello'}], moving = false, lastPickup = 0;
+
+async function ping(){
+  const body = JSON.stringify({ visible: document.visibilityState === 'visible', moving, tilt: Math.round(tiltNow), events: queue.splice(0) });
+  try{
+    const r = await fetch(API, { method:'POST', body, headers:{'Content-Type':'application/json'} });
+    const j = await r.json();
+    $('#link').classList.toggle('on', r.ok); $('#linkT').textContent = (r.ok ? 'подключено к компьютеру' : 'нет связи') + ($('#linkT').dataset.wake||'');
+    render(j.session || {});
+    if(j.ask_reason) $('#why').classList.add('on');   // Mac по камере решил, что телефоном пользовались
+  }catch{ $('#link').classList.remove('on'); $('#linkT').textContent = 'нет связи с компьютером'; }
+}
+function render(s){
+  if(!s.active){ $('#state').textContent='ОЖИДАНИЕ'; $('#timer').textContent='--:--'; document.body.className=''; return; }
+  $('#timer').textContent = s.timer || '--:--';
+  $('#state').textContent = s.state || '';
+  if(s.say) $('#say').textContent = s.say;
+  $('#goal').textContent = s.goal ? '🎯 ' + s.goal : '';
+  document.body.className = s.mood || '';
+  if(s.mood === 'bad' && navigator.vibrate) navigator.vibrate([200,100,200]);
+}
+
+// --- датчик: телефон взяли в руки ---
+// Толчки стола (печать, задел рукой) дают короткие всплески ускорения, но телефон при этом не меняет наклон.
+// Когда телефон берут в руки, он наклоняется на десятки градусов. Поэтому смотрим на НАКЛОН, держащийся 0,35 с.
+let g = null, rest = null, stillStart = 0, tiltNow = 0, tiltSince = 0;
+const angle = (a,b) => { const d=a[0]*b[0]+a[1]*b[1]+a[2]*b[2], n=Math.hypot(...a)*Math.hypot(...b); return n ? Math.acos(Math.max(-1,Math.min(1,d/n)))*57.3 : 0; };
+function onMotion(e){
+  const a = e.accelerationIncludingGravity || {}, r = e.rotationRate || {};
+  if(a.x == null) return;
+  const v = [a.x, a.y, a.z], now = Date.now();
+  if(!g) g = v.slice();
+  for(let i=0;i<3;i++) g[i] = g[i]*0.85 + v[i]*0.15;            // сглаженное направление силы тяжести
+  if(!rest) rest = g.slice();
+  const lin = Math.hypot(v[0]-g[0], v[1]-g[1], v[2]-g[2]);     // «тряска»
+  const rot = Math.hypot(r.alpha||0, r.beta||0, r.gamma||0);
+  tiltNow = angle(g, rest);
+  // телефон спокойно лежит 3 с — запоминаем это положение как «лежит» (например, если его переложили)
+  if(lin < 0.25 && rot < 3){ if(!stillStart) stillStart = now; if(now - stillStart > 3000 && tiltNow < 40) rest = g.slice(); }
+  else stillStart = 0;
+  const picked = tiltNow > 22 || (tiltNow > 10 && rot > 90 && lin > 2);
+  if(picked){
+    if(!tiltSince) tiltSince = now;
+    if(now - tiltSince > 350){ moving = true; if(now - lastPickup > 4000){ lastPickup = now; queue.push({kind:'pickup'}); ping(); } }
+  } else { tiltSince = 0; if(tiltNow < 8) moving = false; }
+}
+
+$('#go').onclick = async () => {
+  try{
+    if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      const st = await DeviceMotionEvent.requestPermission();
+      if(st !== 'granted') $('#introErr').textContent = 'Без датчика движения я замечу только уход в другое приложение.';
+    }
+  }catch(e){ $('#introErr').textContent = 'Датчик движения недоступен: ' + e.message; }
+  addEventListener('devicemotion', onMotion);
+  $('#linkT').dataset.wake = ' · теперь выключи экран';
+  $('#intro').classList.remove('on'); $('#main').classList.add('on');
+  ping(); setInterval(ping, 1000);
+};
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden'){
+    // лежал на столе → просто погас экран (так и надо). Был в руках → то ли выключил, то ли ушёл в другое приложение:
+    // это решит Mac по камере (смотришь в экран — выключил; смотришь вниз или в телефон — пользовался)
+    const held = moving || tiltNow > 15 || Date.now()-lastPickup < 3000;
+    const body = JSON.stringify({ visible:false, moving:false, held, events:[] });
+    try{ fetch(API, { method:'POST', body, keepalive:true, headers:{'Content-Type':'application/json'} }); }catch{}
+    try{ navigator.sendBeacon(API, body); }catch{}
+  } else {
+    ping();
+  }
+});
+$('#why').onclick = e => { const b = e.target.closest('button'); if(!b) return; queue.push({kind:'reason', value:b.dataset.r}); $('#why').classList.remove('on'); ping(); };
+$('#callBtn').onclick = () => { queue.push({kind:'call'}); $('#say').textContent = 'Спрашиваю учителя…'; ping(); };
+function ask(){ const v = $('#askIn').value.trim(); if(!v) return; queue.push({kind:'ask', value:v}); $('#askIn').value=''; $('#say').textContent='Спрашиваю учителя…'; ping(); }
+$('#askBtn').onclick = ask; $('#askIn').addEventListener('keydown', e => { if(e.key === 'Enter') ask(); });
+if(!T){ $('#introErr').textContent = 'В ссылке нет кода подключения. Открой ссылку из QR-кода на компьютере.'; }
+</script>
+</body>
+</html>

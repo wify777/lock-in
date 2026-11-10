@@ -1,0 +1,2377 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sensei — AI-наставник фокуса</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+@property --c{syntax:'<color>';inherits:false;initial-value:transparent}
+:root{--bg:#06080c;--panel:rgba(255,255,255,.035);--line:rgba(255,255,255,.085);--tx:#e9edf5;--mu:#8791a5;--ok:#3ef2b0;--gold:#ffc857;--warn:#ffb020;--bad:#ff4d5e;--cy:#4cc9f0;--vio:#8b6cff;--pink:#ff5ca8;--r:20px;--mono:'JetBrains Mono',ui-monospace,monospace;--sans:'Space Grotesk',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{background:radial-gradient(1100px 700px at 75% -10%,#102033 0,transparent 60%),radial-gradient(900px 600px at -10% 110%,#16112b 0,transparent 55%),var(--bg);color:var(--tx);font:15px/1.5 var(--sans);overflow-x:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+#aura{position:fixed;inset:0;pointer-events:none;z-index:50;--c:transparent;box-shadow:inset 0 0 150px 0 color-mix(in srgb,var(--c) 42%,transparent);transition:--c .7s}
+body[data-state=focus] #aura{--c:var(--ok)}
+body[data-state=flow] #aura{--c:var(--gold);animation:pulse 3.2s ease-in-out infinite}
+body[data-state=warn] #aura{--c:var(--warn)}
+body[data-state=phone] #aura{--c:var(--bad);animation:pulse .9s ease-in-out infinite}
+body[data-state=calib] #aura{--c:var(--cy)}
+body[data-state=eyes] #aura{--c:var(--cy);animation:pulse 2s ease-in-out infinite}
+body[data-state=drift] #aura{--c:var(--vio);animation:pulse .7s ease-in-out 5}
+@keyframes pulse{50%{opacity:.5}}
+
+.screen{display:none;min-height:100vh;padding:28px clamp(16px,4vw,48px)}
+.screen.active{display:block}
+.brand{display:flex;align-items:center;gap:12px;margin:0 auto 28px;max-width:1180px;font-weight:700;letter-spacing:.02em}
+.logo{width:34px;height:34px;border-radius:11px;background:conic-gradient(from 210deg,var(--ok),var(--cy),var(--vio),var(--ok));display:grid;place-items:center;flex:none}
+.logo::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--bg)}
+.brand small{color:var(--mu);font-weight:400;margin-left:6px}
+.langsw{margin-left:auto;display:flex;gap:4px;padding:4px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.langsw button{padding:5px 12px;border-radius:99px;font:700 12px var(--mono);color:var(--mu)}
+.langsw button.on{background:var(--tx);color:var(--bg)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;backdrop-filter:blur(10px)}
+.setup-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;max-width:1180px;margin:0 auto;align-items:start}
+.stats{position:sticky;top:20px}
+h1{font-size:clamp(34px,5vw,58px);line-height:1.04;letter-spacing:-.03em;font-weight:700}
+h1 .grad{background:linear-gradient(90deg,var(--ok),var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--mu);margin:14px 0 18px;max-width:56ch}
+label.f,.sec{display:block;color:var(--mu);font-size:13px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em}
+.sec{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);color:var(--tx);font-weight:700}
+.inp{width:100%;padding:13px 15px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid var(--line);outline:0}
+.inp:focus{border-color:var(--cy);box-shadow:0 0 0 3px rgba(76,201,240,.15)}
+#task{font-size:17px}
+select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mu) 50%),linear-gradient(135deg,var(--mu) 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 15px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:36px}
+select.inp option{background:#10141c}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mu);transition:.2s}
+.pill:hover{color:var(--tx);border-color:rgba(255,255,255,.2)}
+.pill.on{color:#04110c;background:var(--ok);border-color:var(--ok);font-weight:700}
+.pill.sm{padding:6px 12px;font-size:13px}
+.pill.bad.on{background:var(--pink);border-color:var(--pink);color:#1a0010}
+.coaches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.coachc{padding:14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.025);text-align:left;transition:.2s}
+.coachc b{display:block;font-size:16px}
+.coachc span{color:var(--mu);font-size:12.5px;line-height:1.35;display:block;margin-top:2px}
+.coachc.on{border-color:var(--cy);background:rgba(76,201,240,.09);box-shadow:0 0 0 3px rgba(76,201,240,.1)}
+.toggle{display:flex;align-items:flex-start;gap:12px;color:var(--mu);cursor:pointer;user-select:none;margin-top:12px}
+.toggle i{width:38px;height:22px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;transition:.2s;flex:none;margin-top:1px}
+.toggle i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on i{background:var(--ok)}
+.toggle.on i::after{left:19px;background:#04110c}
+.toggle.on{color:var(--tx)}
+.toggle small{display:block;color:var(--mu);font-size:12.5px;line-height:1.35;margin-top:2px}
+.sub{margin:10px 0 0 50px;padding:14px;border-radius:14px;background:rgba(0,0,0,.22);border:1px solid var(--line);display:none}
+.sub.on{display:block}
+.sub label.f{margin-top:12px}
+.sub label.f:first-child{margin-top:0}
+.note{font-size:12.5px;color:var(--mu);margin-top:8px;line-height:1.45}
+.note.warn{color:#ffcf7a}
+.vrow{display:grid;grid-template-columns:1fr auto;gap:8px}
+.btn2{padding:11px 16px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);white-space:nowrap}
+.btn2:hover{background:rgba(255,255,255,.1)}
+input[type=range]{width:160px;accent-color:var(--ok)}
+.cta{margin-top:26px;width:100%;padding:18px;border-radius:16px;font-size:18px;font-weight:700;color:#04110c;background:linear-gradient(90deg,var(--ok),var(--cy));box-shadow:0 12px 40px -12px rgba(62,242,176,.6);transition:.2s}
+.cta:hover{transform:translateY(-2px);box-shadow:0 18px 48px -12px rgba(62,242,176,.75)}
+.cta:disabled{opacity:.6;transform:none}
+#modelStatus{margin-top:12px;font-size:13px;color:var(--mu);display:flex;align-items:center;gap:8px}
+#modelStatus .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);animation:pulse 1s infinite}
+#modelStatus.ready .dot{background:var(--ok);animation:none}
+#modelStatus.err .dot{background:var(--bad);animation:none}
+.priv{margin-top:18px;padding:12px 14px;border-radius:12px;background:rgba(62,242,176,.06);border:1px solid rgba(62,242,176,.18);color:#9fe8cf;font-size:13px}
+
+.stats h3{font-size:13px;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;font-weight:500;margin-bottom:12px}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.big3 div{padding:14px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+.big3 b{display:block;font:700 26px var(--mono)}
+.big3 span{font-size:12px;color:var(--mu)}
+.week{display:flex;gap:8px;align-items:flex-end;height:120px;margin-bottom:22px}
+.week div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.week i{width:100%;border-radius:8px;background:linear-gradient(180deg,var(--ok),rgba(62,242,176,.25));min-height:4px}
+.week i.empty{background:rgba(255,255,255,.07)}
+.week span{font-size:11px;color:var(--mu)}
+.hist{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+.hist div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13.5px}
+.hist em{font-style:normal;color:var(--mu);white-space:nowrap}
+.hist b.rk{font-family:var(--mono);margin-left:8px}
+
+.session-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;max-width:1380px;margin:0 auto}
+.stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+.video-wrap{position:relative;border-radius:26px;overflow:hidden;background:#000;border:1px solid var(--line);aspect-ratio:var(--ar,1.7778);width:min(100%, calc((100vh - 210px) * var(--ar,1.7778)));margin:0 auto;box-shadow:0 30px 80px -30px rgba(0,0,0,.8)}
+.scrim{position:absolute;inset:0 0 auto 0;height:42%;background:linear-gradient(180deg,rgba(0,0,0,.62),rgba(0,0,0,.25) 55%,transparent);pointer-events:none}
+.scrim.b{inset:auto 0 0 0;height:30%;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent)}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1)}
+#ov{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.hud-tl{position:absolute;left:20px;top:18px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.hud-tl .task{color:#cfd6e4;font-size:14px;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hud-tl .timer{font:700 clamp(34px,5vw,60px)/1 var(--mono);letter-spacing:-.02em}
+.hud-tr{position:absolute;right:18px;top:18px}
+.schip{display:flex;align-items:center;gap:9px;padding:9px 15px;border-radius:99px;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);border:1px solid var(--line);font:700 13px var(--mono);letter-spacing:.08em}
+.schip i{width:9px;height:9px;border-radius:50%;background:var(--c,var(--ok));box-shadow:0 0 12px var(--c,var(--ok))}
+.alertb{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.9);padding:16px 30px;border-radius:18px;font:700 clamp(20px,3.4vw,40px)/1.1 var(--sans);letter-spacing:.03em;text-align:center;color:#fff;background:rgba(255,77,94,.88);box-shadow:0 0 80px rgba(255,77,94,.65);opacity:0;pointer-events:none;transition:.25s;max-width:90%}
+.alertb.warn{background:rgba(255,176,32,.9);color:#201400;box-shadow:0 0 70px rgba(255,176,32,.5)}
+.alertb.scr{background:rgba(255,92,168,.9);box-shadow:0 0 70px rgba(255,92,168,.55)}
+.alertb.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.video-wrap.shake{animation:shake .45s}
+@keyframes shake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.flash{position:absolute;inset:0;background:var(--bad);opacity:0;pointer-events:none}
+.flash.go{animation:flash .6s}
+@keyframes flash{0%{opacity:.5}100%{opacity:0}}
+.subtitle{position:absolute;left:50%;bottom:20px;transform:translateX(-50%) translateY(8px);max-width:82%;padding:12px 20px;border-radius:16px;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);border:1px solid var(--line);font-size:clamp(15px,1.6vw,20px);text-align:center;opacity:0;transition:.35s;pointer-events:none}
+.subtitle.show{opacity:1;transform:translateX(-50%)}
+.subtitle small{display:block;color:var(--cy);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+.vover{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:20px}
+.vover.on{display:grid}
+.calib{background:radial-gradient(circle,transparent 30%,rgba(0,8,16,.62) 100%)}
+.calib .ringw,.eyes .ringw{position:relative;width:150px;height:150px;margin:0 auto 14px}
+.vover b.h{font-size:22px;display:block}
+.vover span.s{color:#aab6c9;font-size:14px}
+.scan{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--cy),transparent);box-shadow:0 0 24px var(--cy);animation:scan 2.2s ease-in-out infinite}
+@keyframes scan{0%,100%{top:8%}50%{top:92%}}
+.eyes{background:rgba(2,10,20,.72);backdrop-filter:blur(6px)}
+.lockgate{background:rgba(4,6,10,.8);backdrop-filter:blur(8px)}
+.lockgate .cta{width:auto;padding:16px 30px;margin-top:18px}
+.paused{background:rgba(4,6,10,.78);backdrop-filter:blur(10px);font:700 36px var(--mono);letter-spacing:.2em}
+.dbg{position:absolute;left:12px;bottom:10px;font:11px/1.4 var(--mono);color:#9fe8cf;background:rgba(0,0,0,.6);padding:6px 9px;border-radius:8px;display:none;white-space:pre}
+.dbg.on{display:block}
+.timeline{padding:14px 16px 10px}
+#tl{width:100%;height:30px;display:block;border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--mu)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ws{display:none;flex-direction:column;flex:1;min-height:0}
+.ws .wh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
+.ws .wh b{font-size:15px}
+#notes{flex:1;min-height:260px;resize:none;width:100%;padding:18px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid var(--line);outline:0;font:16px/1.65 var(--sans)}
+#notes:focus{border-color:rgba(76,201,240,.5)}
+
+.side{display:flex;flex-direction:column;gap:14px}
+.ringcard{display:flex;align-items:center;gap:18px}
+.ringw{position:relative;width:118px;height:118px;flex:none}
+.ringw svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringw circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ringw .bg{stroke:rgba(255,255,255,.07)}
+.ringw .fg{stroke:var(--ok);transition:stroke-dashoffset .4s,stroke .4s}
+.ringw b{position:absolute;inset:0;display:grid;place-items:center;font:700 30px var(--mono)}
+.ringcard h4,.scrc h4{font-size:13px;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+.ringcard p{font-size:20px;font-weight:700;line-height:1.2;margin-top:4px}
+.flowc .top{display:flex;justify-content:space-between;align-items:baseline}
+.flowc .lv{font-weight:700}
+.flowc .t{font:500 15px var(--mono);color:var(--mu)}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:12px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--ok),var(--gold));transition:width .4s}
+.flowc small{display:block;margin-top:8px;color:var(--mu);font-size:12.5px}
+.cnt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cnt div{padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.cnt b{display:block;font:700 24px var(--mono)}
+.cnt span{font-size:12px;color:var(--mu)}
+.scrc .st{display:flex;align-items:center;gap:8px;font-weight:700;margin-top:6px}
+.scrc .st i{width:9px;height:9px;border-radius:50%;background:var(--mu);flex:none}
+.scrc .st.ok i{background:var(--ok)} .scrc .st.bad i{background:var(--pink);box-shadow:0 0 10px var(--pink)} .scrc .st.bad{color:#ffb3d6}
+.scrc p{color:var(--mu);font-size:12.5px;margin-top:4px}
+.scrc .btn2{margin-top:10px;width:100%}
+.coachcard{display:flex;gap:14px;align-items:flex-start}
+.avatar{width:44px;height:44px;border-radius:14px;flex:none;background:linear-gradient(135deg,var(--cy),var(--vio));display:grid;place-items:center;font-weight:700;color:#04101a}
+.coachcard h4{font-size:15px}
+.coachcard p{color:var(--mu);font-size:14px;margin-top:3px;min-height:42px}
+.coachcard{flex-direction:column;align-items:stretch;gap:12px}
+.coachcard .ch{display:flex;gap:14px;align-items:flex-start}
+.chatlog{display:flex;flex-direction:column;gap:6px;max-height:190px;overflow:auto}
+.chatlog:empty{display:none}
+.chatlog div{padding:8px 11px;border-radius:12px;font-size:13.5px;line-height:1.4;max-width:92%;background:rgba(255,255,255,.06)}
+.chatlog div.u{align-self:flex-end;background:rgba(76,201,240,.16);color:#d8f3ff}
+.chatlog div.ok{border-left:3px solid var(--ok)} .chatlog div.no{border-left:3px solid var(--bad)}
+.chatin{display:flex;gap:6px}
+.chatin input{flex:1;min-width:0;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);outline:0;font-size:14px}
+.chatin input:focus{border-color:var(--cy)}
+.chatin button{width:40px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
+#micBtn.on{background:var(--bad);border-color:var(--bad);animation:pulse 1s infinite}
+.qr{display:grid;place-items:center;margin:16px auto;padding:14px;background:#fff;border-radius:16px;width:max-content}
+.purl{font:12.5px var(--mono);color:var(--mu);word-break:break-all;margin:0 0 12px!important}
+.steps{text-align:left;color:#c3cbda;font-size:14px;margin:0 0 18px 20px;display:flex;flex-direction:column;gap:6px}
+.inp.shake{animation:shake .45s;border-color:var(--bad)}
+.snap{background:rgba(0,0,0,.35)} .snapN{font:700 96px var(--mono);margin-top:6px}
+.fyTimer{font:700 54px var(--mono);margin:6px 0 12px}
+#fyText{min-height:120px;resize:vertical;text-align:left;font-size:15px}
+#feynBtn,#strictExit{display:none}
+body.strict #feynBtn,body.strict #strictExit{display:block}
+#allowApps .pill.on{background:var(--cy);border-color:var(--cy);color:#04101a}
+.sndc{display:flex;align-items:center;gap:10px}
+.sndc select{flex:1}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btns button{padding:13px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:.2s}
+.btns button:hover{background:rgba(255,255,255,.09)}
+.btns .end{grid-column:1/-1;background:rgba(255,77,94,.12);border-color:rgba(255,77,94,.35);color:#ffb3bb}
+.btns .end:hover{background:rgba(255,77,94,.22)}
+.btns .full{grid-column:1/-1}
+
+/* ---- lock mode ---- */
+#emBtn{position:fixed;top:14px;right:14px;z-index:60;padding:8px 14px;border-radius:99px;font-size:12.5px;color:#ffb3bb;background:rgba(255,77,94,.1);border:1px solid rgba(255,77,94,.35);display:none}
+body.locked #emBtn{display:block}
+body.locked .ws{display:flex}
+body.locked .video-wrap{aspect-ratio:auto;height:36vh;width:100%}
+body.locked #session{padding-top:18px}
+body.locked .stage{height:calc(100vh - 40px)}
+body.locked #pipBtn,body.locked #lockBtn{display:none}
+body.locked .timeline{display:none}
+.modal{position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:20px;background:rgba(3,5,9,.85);backdrop-filter:blur(16px);text-align:center}
+.modal.on{display:grid}
+.modal .box{max-width:520px}
+.modal h2{font-size:clamp(26px,4vw,42px);letter-spacing:-.02em;line-height:1.1}
+.modal p{color:var(--mu);margin:12px 0 22px}
+#lockAlarm{background:rgba(40,4,10,.9)}
+#lockAlarm h2{color:#ff8a96}
+.mbtns{display:flex;flex-direction:column;gap:10px;align-items:center}
+.mbtns .cta{margin:0;width:100%}
+.hold{position:relative;overflow:hidden;width:100%;padding:16px;border-radius:14px;border:1px solid rgba(255,77,94,.5);color:#ffc2c8;background:rgba(255,77,94,.1);user-select:none;touch-action:none}
+.hold i{position:absolute;inset:0;width:0;background:rgba(255,77,94,.45);transition:width .1s linear}
+.hold span{position:relative}
+.linkb{color:var(--mu);text-decoration:underline;padding:8px}
+
+.overlay{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:20px;background:rgba(3,5,9,.82);backdrop-filter:blur(18px);overflow:auto}
+.overlay.on{display:grid}
+.sum{width:min(860px,100%);padding:34px}
+.sum .head{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.rank{width:132px;height:132px;border-radius:34px;display:grid;place-items:center;font:700 78px var(--mono);color:#04110c;background:linear-gradient(135deg,var(--ok),var(--cy));box-shadow:0 20px 70px -15px var(--rc,rgba(62,242,176,.7))}
+.sum h2{font-size:30px;letter-spacing:-.02em}
+.sum .verdict{color:#c3cbda;margin-top:6px;max-width:48ch;font-size:16px}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:26px 0 18px}
+.sgrid div{padding:14px;border-radius:14px;background:rgba(0,0,0,.3);border:1px solid var(--line)}
+.sgrid b{display:block;font:700 26px var(--mono)}
+.sgrid span{font-size:12px;color:var(--mu)}
+.types{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.types span{padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:13px}
+#stl{width:100%;height:34px;border-radius:8px;display:block}
+.checkin{margin-top:20px;padding:16px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.checkin b{display:block;margin-bottom:10px}
+.sum .cta{margin-top:20px}
+
+.mini{display:none}
+.mini.pip{display:flex;align-items:center;gap:14px;height:100vh;padding:14px 18px;background:#06080c;color:#e9edf5;font-family:var(--sans)}
+.mini .mt{font:700 38px/1 var(--mono)}
+.mini .ms{display:flex;align-items:center;gap:8px;margin-top:6px;font:700 12px var(--mono);letter-spacing:.08em}
+.mini .ms i{width:9px;height:9px;border-radius:50%;background:var(--c,#3ef2b0)}
+.mini .mb{height:6px;border-radius:9px;background:rgba(255,255,255,.1);margin-top:10px;overflow:hidden;width:170px}
+.mini .mb i{display:block;height:100%;background:linear-gradient(90deg,#3ef2b0,#ffc857);width:0}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:200;padding:14px 20px;border-radius:14px;background:#2a1216;border:1px solid rgba(255,77,94,.5);color:#ffc2c8;display:none;max-width:90vw}
+.toast.on{display:block}
+.learn{background:rgba(0,0,0,.2)}
+.learn .guide{position:absolute;left:35%;top:12%;width:30%;height:66%;border:3px dashed var(--cy);border-radius:20px;box-shadow:0 0 0 9999px rgba(0,0,0,.5);animation:pulse 1.6s ease-in-out infinite}
+.learn .lt{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,92%);text-align:center}
+.learn .bar{margin:10px auto 4px;max-width:320px}
+.thumb{display:none;width:100%;margin-top:10px;border-radius:10px;border:1px solid var(--line)}
+.thumb.on{display:block}
+.sumextra{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;align-items:start}
+.park{padding:14px 16px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.park ul{margin:8px 0 0 18px;color:#c3cbda;font-size:14px}
+.park:has(ul:empty){display:none}
+#scrVid{position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:0;top:0}
+
+@media(max-width:1000px){.setup-grid,.session-grid{grid-template-columns:1fr}.coaches{grid-template-columns:1fr}.sgrid{grid-template-columns:repeat(2,1fr)}.stats{position:static}.sub{margin-left:0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body data-state="idle">
+<div id="aura"></div>
+<video id="scrVid" muted playsinline></video>
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="screen active">
+  <div class="brand"><div class="logo"></div>SENSEI<small data-i18n="tagline"></small>
+    <div class="langsw" id="langSw"><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+  </div>
+  <div class="setup-grid">
+    <div class="card">
+      <h1><span data-i18n="h1a"></span><br><span data-i18n="h1b" class="grad"></span></h1>
+      <p class="lead" data-i18n="lead"></p>
+
+      <label class="f" for="task" data-i18n="taskQ"></label>
+      <input id="task" class="inp" data-i18n-ph="taskPh" maxlength="120" autocomplete="off">
+      <p class="note" data-i18n="taskNote"></p>
+      <label class="f" for="firstStep" data-i18n="firstStepL"></label>
+      <input id="firstStep" class="inp" data-i18n-ph="firstStepPh" maxlength="140" autocomplete="off">
+      <p class="note" data-i18n="firstStepNote"></p>
+
+      <label class="f" data-i18n="durL"></label>
+      <div class="row" id="durRow">
+        <button class="pill" data-v="25">25</button>
+        <button class="pill" data-v="50">50</button>
+        <button class="pill" data-v="90">90</button>
+        <button class="pill" data-v="0" data-i18n="noTimer"></button>
+      </div>
+
+      <label class="f" data-i18n="coachL"></label>
+      <div class="coaches" id="coachRow"></div>
+
+      <label class="f" data-i18n="sensL"></label>
+      <div class="row" id="sensRow">
+        <button class="pill" data-v="0" data-i18n="sens0"></button>
+        <button class="pill" data-v="1" data-i18n="sens1"></button>
+        <button class="pill" data-v="2" data-i18n="sens2"></button>
+      </div>
+
+      <!-- voice -->
+      <div class="sec" data-i18n="secVoice"></div>
+      <div class="toggle" id="voiceT"><i></i><div data-i18n="voiceT"></div></div>
+      <div class="sub on" id="voiceOpts">
+        <label class="f" data-i18n="voiceSel"></label>
+        <div class="vrow"><select id="voiceSel" class="inp"></select><button class="btn2" id="voiceTest" data-i18n="voiceTest"></button></div>
+        <p class="note" id="voiceHint"></p>
+      </div>
+
+      <!-- screen -->
+      <div class="sec" data-i18n="secScreen"></div>
+      <div class="toggle" id="screenT"><i></i><div><span data-i18n="screenT"></span><small data-i18n="screenTs"></small></div></div>
+      <p class="note" id="agentNote" style="margin-left:50px"></p>
+      <div class="sub" id="screenOpts">
+        <label class="f" data-i18n="appsL"></label>
+        <div class="row" id="appsRow"></div>
+        <label class="f" for="extra" data-i18n="extraL"></label>
+        <input id="extra" class="inp" data-i18n-ph="extraPh" autocomplete="off">
+        <p class="note" data-i18n="ocrNote"></p>
+        <div class="toggle" id="aiT"><i></i><div><span data-i18n="aiT"></span><small data-i18n="aiTs"></small></div></div>
+        <div class="sub" id="aiOpts" style="margin-left:0">
+          <label class="f" for="apiKey" data-i18n="keyL"></label>
+          <input id="apiKey" class="inp" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <label class="f" data-i18n="modelL"></label>
+          <div class="vrow" style="grid-template-columns:1fr 1fr">
+            <select id="aiModel" class="inp">
+              <option value="claude-opus-5-5">Claude Opus 5.5</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5</option>
+            </select>
+            <select id="aiEvery" class="inp">
+              <option value="30" data-i18n="every30"></option>
+              <option value="60" data-i18n="every60"></option>
+              <option value="120" data-i18n="every120"></option>
+            </select>
+          </div>
+          <p class="note warn" data-i18n="aiNote"></p>
+        </div>
+      </div>
+
+      <!-- lock -->
+      <div class="sec" data-i18n="secLock"></div>
+      <div class="toggle" id="lockT"><i></i><div><span data-i18n="lockT"></span><small data-i18n="lockTs"></small></div></div>
+      <div class="toggle" id="strictT"><i></i><div><span data-i18n="strictT"></span><small data-i18n="strictTs"></small></div></div>
+      <div class="sub" id="strictOpts">
+        <label class="f" data-i18n="allowAppsL"></label>
+        <div class="row" id="allowApps"></div>
+        <button class="linkb" id="appsRefresh" data-i18n="appsRefresh"></button>
+        <label class="f" for="allowSites" data-i18n="allowSitesL"></label>
+        <input id="allowSites" class="inp" data-i18n-ph="allowSitesPh" autocomplete="off">
+        <p class="note" data-i18n="strictNote"></p>
+      </div>
+
+      <!-- extras -->
+      <div class="sec" data-i18n="secExtra"></div>
+      <button class="btn2" id="phBtnSetup" style="margin-top:4px" data-i18n="phPairSetup"></button>
+      <div class="toggle" id="careT"><i></i><div><span data-i18n="careT"></span><small data-i18n="careTs"></small></div></div>
+      <div class="toggle" id="paperT"><i></i><div><span data-i18n="paperT"></span><small data-i18n="paperTs"></small></div></div>
+      <label class="f" data-i18n="soundL"></label>
+      <div class="row" id="soundRow">
+        <button class="pill sm" data-v="off" data-i18n="snd_off"></button>
+        <button class="pill sm" data-v="brown" data-i18n="snd_brown"></button>
+        <button class="pill sm" data-v="rain" data-i18n="snd_rain"></button>
+        <button class="pill sm" data-v="alpha" data-i18n="snd_alpha"></button>
+        <input type="range" id="vol" min="0" max="1" step="0.05" aria-label="volume">
+      </div>
+
+      <button class="cta" id="startBtn" data-i18n="start"></button>
+      <div id="modelStatus"><span class="dot"></span><span id="msText"></span></div>
+      <div class="priv" data-i18n="priv"></div>
+    </div>
+
+    <aside class="card stats">
+      <h3 data-i18n="today"></h3>
+      <div class="big3">
+        <div><b id="sToday">0</b><span data-i18n="minFocus"></span></div>
+        <div><b id="sStreak">0</b><span data-i18n="daysRow"></span></div>
+        <div><b id="sTotal">0</b><span data-i18n="sessions"></span></div>
+      </div>
+      <p class="note" id="goalStat" style="margin:-10px 0 18px"></p>
+      <h3 data-i18n="last7"></h3>
+      <div class="week" id="week"></div>
+      <h3 data-i18n="history"></h3>
+      <div class="hist" id="hist"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ SESSION ============ -->
+<section id="session" class="screen">
+  <div class="session-grid">
+    <div class="stage">
+      <div class="video-wrap" id="vwrap">
+        <video id="cam" playsinline muted></video>
+        <canvas id="ov"></canvas>
+        <div class="scrim"></div><div class="scrim b"></div>
+        <div class="flash" id="flash"></div>
+        <div class="hud-tl"><div class="task" id="hudTask"></div><div class="timer" id="hudTimer">00:00</div></div>
+        <div class="hud-tr"><div class="schip" id="schip"><i></i><span id="schipT">—</span></div></div>
+        <div class="alertb" id="alertb"></div>
+        <div class="subtitle" id="sub"></div>
+        <div class="vover calib" id="calib">
+          <div class="scan"></div>
+          <div>
+            <div class="ringw"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="calRing" cx="60" cy="60" r="52" style="stroke:var(--cy);stroke-dasharray:326.7;stroke-dashoffset:326.7"/></svg><b id="calPct">0%</b></div>
+            <b class="h" data-i18n="calH"></b>
+            <span class="s" id="calSub"></span>
+          </div>
+        </div>
+        <div class="vover eyes" id="eyes">
+          <div>
+            <div class="ringw"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="eyeRing" cx="60" cy="60" r="52" style="stroke:var(--cy);stroke-dasharray:326.7;stroke-dashoffset:0"/></svg><b id="eyeN">20</b></div>
+            <b class="h" data-i18n="eyesH"></b>
+            <span class="s" data-i18n="eyesS"></span>
+          </div>
+        </div>
+        <div class="vover lockgate" id="lockGate">
+          <div>
+            <b class="h" data-i18n="gateH"></b>
+            <span class="s" data-i18n="gateS"></span><br>
+            <button class="cta" id="gateBtn" data-i18n="gateBtn"></button><br>
+            <button class="linkb" id="gateSkip" data-i18n="gateSkip"></button>
+          </div>
+        </div>
+        <div class="vover learn" id="learn">
+          <div class="guide"></div>
+          <div class="lt">
+            <b class="h" data-i18n="learnH"></b>
+            <span class="s" data-i18n="learnS"></span>
+            <div class="bar"><i id="learnBar"></i></div>
+            <button class="linkb" id="learnSkip" data-i18n="learnSkip"></button>
+          </div>
+        </div>
+        <div class="vover snap" id="snap"><div><b class="h" data-i18n="snapH"></b><div class="snapN" id="snapN">3</div></div></div>
+        <div class="vover paused" id="paused" data-i18n="pausedT"></div>
+        <div class="dbg" id="dbgbox"></div>
+      </div>
+      <div class="card ws" id="ws">
+        <div class="wh"><b data-i18n="wsH"></b><button class="btn2" id="notesDl" data-i18n="notesDl"></button></div>
+        <textarea id="notes" data-i18n-ph="notesPh" spellcheck="true"></textarea>
+      </div>
+      <div class="card timeline">
+        <canvas id="tl"></canvas>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="card ringcard">
+        <div class="ringw"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="ring" cx="60" cy="60" r="52" style="stroke-dasharray:326.7;stroke-dashoffset:0"/></svg><b id="score">100</b></div>
+        <div><h4 data-i18n="focusNow"></h4><p id="scoreT"></p></div>
+      </div>
+      <div class="card flowc">
+        <div class="top"><span class="lv" id="flowLv"></span><span class="t" id="flowT">00:00</span></div>
+        <div class="bar"><i id="flowBar"></i></div>
+        <small id="flowHint"></small>
+      </div>
+      <div class="cnt">
+        <div><b id="cDist">0</b><span data-i18n="cDist"></span></div>
+        <div><b id="cPhone">0</b><span data-i18n="cPhone"></span></div>
+        <div><b id="cBest">00:00</b><span data-i18n="cBest"></span></div>
+        <div><b id="cPct">100%</b><span data-i18n="cPct"></span></div>
+      </div>
+      <div class="card scrc">
+        <h4 data-i18n="scrH"></h4>
+        <div class="st" id="scrSt"><i></i><span></span></div>
+        <p id="scrP"></p>
+        <img id="scrThumb" class="thumb" alt="">
+        <button class="btn2" id="scrBtn" data-i18n="scrOn"></button>
+      </div>
+      <div class="card coachcard">
+        <div class="ch"><div class="avatar" id="avatar">S</div><div><h4 id="coachName"></h4><p id="coachSay"></p></div></div>
+        <div class="chatlog" id="chatlog"></div>
+        <div class="chatin"><input id="chatIn" data-i18n-ph="chatPh" autocomplete="off" maxlength="300"><button id="paperBtn" title="📄">📄</button><button id="micBtn" title="Voice (V)">🎤</button><button id="sendBtn">→</button></div>
+      </div>
+      <div class="card scrc">
+        <h4 data-i18n="phH"></h4>
+        <div class="st" id="phSt"><i></i><span></span></div>
+        <button class="btn2" id="phBtn" data-i18n="phPair"></button>
+      </div>
+      <div class="card sndc">
+        <span data-i18n="soundS">🎧</span>
+        <select id="sSound" class="inp">
+          <option value="off" data-i18n="snd_off"></option>
+          <option value="brown" data-i18n="snd_brown"></option>
+          <option value="rain" data-i18n="snd_rain"></option>
+          <option value="alpha" data-i18n="snd_alpha"></option>
+        </select>
+      </div>
+      <div class="btns">
+        <button id="pauseBtn"></button>
+        <button id="pipBtn" data-i18n="pip"></button>
+        <button id="parkBtn" class="full" data-i18n="parkBtn"></button>
+        <button id="learnBtn"></button>
+        <button id="lockBtn" data-i18n="lockNow"></button>
+        <button id="feynBtn" class="full" data-i18n="feynBtn"></button>
+        <button id="strictExit" class="full" data-i18n="strictExit"></button>
+        <button class="end" id="endBtn" data-i18n="endBtn"></button>
+      </div>
+    </aside>
+  </div>
+</section>
+<button id="emBtn" data-i18n="emBtn"></button>
+
+<!-- lock alarm -->
+<div class="modal" id="lockAlarm">
+  <div class="box">
+    <h2 data-i18n="alarmH"></h2>
+    <p data-i18n="alarmP"></p>
+    <div class="mbtns">
+      <button class="cta" id="reLock" data-i18n="reLock"></button>
+      <button class="linkb" id="alarmEm" data-i18n="emBtn"></button>
+    </div>
+  </div>
+</div>
+<!-- phone pairing -->
+<div class="modal" id="pairModal">
+  <div class="box" style="width:min(560px,100%)">
+    <h2 data-i18n="pairH"></h2>
+    <div class="qr" id="qr"></div>
+    <p class="purl" id="pairUrl"></p>
+    <ol class="steps" id="pairSteps"></ol>
+    <div class="mbtns"><button class="cta" id="pairClose" data-i18n="pairDone"></button></div>
+  </div>
+</div>
+<!-- Feynman unlock -->
+<div class="modal" id="feyn">
+  <div class="box" style="width:min(640px,100%)">
+    <h2 id="fyH"></h2>
+    <p id="fyP"></p>
+    <div class="fyTimer" id="fyTimer"></div>
+    <textarea id="fyText" class="inp" rows="5"></textarea>
+    <div class="mbtns" style="margin-top:14px">
+      <button class="cta" id="fyGo"></button>
+      <button class="linkb" id="fyCancel" data-i18n="emCancel"></button>
+    </div>
+  </div>
+</div>
+<!-- thought parking -->
+<div class="modal" id="parkModal">
+  <div class="box" style="width:min(560px,100%)">
+    <h2 data-i18n="parkH"></h2>
+    <p data-i18n="parkHint"></p>
+    <input id="parkIn" class="inp" data-i18n-ph="parkPh" maxlength="200" autocomplete="off">
+    <div class="mbtns" style="margin-top:14px"><button class="linkb" id="parkClose" data-i18n="emCancel2"></button></div>
+  </div>
+</div>
+<!-- emergency exit -->
+<div class="modal" id="emModal">
+  <div class="box">
+    <h2 data-i18n="emH"></h2>
+    <p data-i18n="emP"></p>
+    <div class="mbtns">
+      <button class="hold" id="holdBtn"><i></i><span data-i18n="emHold"></span></button>
+      <button class="linkb" id="emCancel" data-i18n="emCancel"></button>
+    </div>
+  </div>
+</div>
+
+<!-- mini widget (moves to Picture-in-Picture window) -->
+<div class="mini" id="mini">
+  <div>
+    <div class="mt" id="mTime">00:00</div>
+    <div class="ms"><i></i><span id="mState">—</span></div>
+    <div class="mb"><i id="mBar"></i></div>
+  </div>
+</div>
+
+<!-- ============ SUMMARY ============ -->
+<div class="overlay" id="summary">
+  <div class="card sum">
+    <div class="head">
+      <div class="rank" id="sRank">A</div>
+      <div><h2 id="sTitle"></h2><p class="verdict" id="sVerdict"></p></div>
+    </div>
+    <div class="sgrid">
+      <div><b id="sgPct">0%</b><span data-i18n="cPct"></span></div>
+      <div><b id="sgTime">0</b><span data-i18n="sgTime"></span></div>
+      <div><b id="sgDist">0</b><span data-i18n="cDist"></span></div>
+      <div><b id="sgBest">0</b><span data-i18n="cBest"></span></div>
+    </div>
+    <div class="types" id="sTypes"></div>
+    <canvas id="stl"></canvas>
+    <div class="sumextra">
+      <div class="park" id="sParkBox"><b data-i18n="parkSum"></b><ul id="sPark"></ul></div>
+    </div>
+    <div class="checkin" id="checkin">
+      <b id="checkQ"></b>
+      <div class="row" id="checkRow">
+        <button class="pill" data-v="yes" data-i18n="chkYes"></button>
+        <button class="pill" data-v="partly" data-i18n="chkPartly"></button>
+        <button class="pill" data-v="no" data-i18n="chkNo"></button>
+      </div>
+    </div>
+    <button class="cta" id="againBtn" data-i18n="again"></button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { FilesetResolver, FaceLandmarker, ObjectDetector, HandLandmarker, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+// обход бага MediaPipe: wasm пишет предупреждения через глобальный dbg()
+window.dbg = () => {};
+
+const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const FACE_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const OBJ_URL  = "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite";
+const OBJ0_URL = "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite";
+const HAND_URL ="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const TESS_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+const SDK_URL  = "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.1.0/+esm";
+
+const $ = s => document.querySelector(s);
+// режим автотестов (?test): камера и нейросети не нужны, «позу» и «телефон в кадре» задаёт тест
+const TEST = /[?&]test\b/.test(location.search);
+const SIM = { M:null, said:[] };
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); return s[Math.floor(s.length/2)]; };
+const fmt = s => { s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return h? `${h}:${p(m)}:${p(x)}` : `${p(m)}:${p(x)}`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch{ return d } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch{} } };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+/* ================= i18n ================= */
+const I18N = {
+ru:{
+  tagline:'личный наставник фокуса', h1a:'Работай.', h1b:'Я смотрю.',
+  lead:'Камера и нейросеть следят за тобой, а по желанию — и за экраном. Потянешься к телефону, откроешь Телеграм или начнёшь засыпать — наставник скажет об этом голосом.',
+  taskQ:'🎯 Цель сессии: что будет готово к концу?', taskPh:'Например: написать введение к диплому (1 страница)', taskNote:'Без цели сессия не начнётся. В конце учитель спросит, выполнил ли ты её.',
+  durL:'Длительность, мин', noTimer:'Без таймера', coachL:'Кто за тобой следит', sensL:'Строгость', sens0:'Мягко', sens1:'Нормально', sens2:'Жёстко',
+  secVoice:'Голос', voiceT:'Наставник говорит вслух', voiceSel:'Голос', voiceTest:'Проверить', voiceAuto:'Автовыбор',
+  noVoice:'В системе не найден русский голос — браузер может читать текст чужим голосом с акцентом. На Mac: Системные настройки → Универсальный доступ → Устная речь → Системный голос → Управлять голосами → Русский → Milena (улучшенный). Потом перезапусти браузер.',
+  voiceOk:'Подходящих голосов: {n}. Лучший выбран автоматически — нажми «Проверить».',
+  voiceWeak:'Нормального русского голоса не нашлось, поэтому возможен акцент. Поставь Milena (улучшенный): Системные настройки → Универсальный доступ → Устная речь → Системный голос → Управлять голосами → Русский. Потом перезапусти браузер. В Chrome также хорошо звучит «Google русский».',
+  secScreen:'Экран', screenT:'Следить за экраном', screenTs:'Замечу Telegram, Instagram, YouTube и другие отвлекалки на компьютере.',
+  appsL:'Что считать отвлечением', extraL:'Свои слова-отвлекалки (через запятую)', extraPh:'например: кинопоиск, ozon, wildberries',
+  ocrNote:'Базовая проверка работает локально: каждые ~5 секунд читаю название активного приложения в строке меню Mac и адрес сайта в браузере. Текст на самой странице не учитывается, поэтому упоминание «Facebook» в переписке не сработает. Ничего не отправляется. Если приложение развёрнуто на весь экран (строки меню нет), поможет только умная проверка.',
+  scrSeen:'вижу: {app} {dom}',
+  aiT:'Умная проверка через Claude', aiTs:'Claude смотрит на скриншот и решает, относится ли он к твоей задаче. Нужен твой API-ключ Anthropic.',
+  keyL:'API-ключ Anthropic', modelL:'Модель и частота',
+  every30:'каждые 30 с', every60:'каждую минуту', every120:'каждые 2 мин',
+  aiNote:'В этом режиме скриншоты экрана отправляются в Anthropic API, и каждая проверка платная (Haiku заметно дешевле Opus). Ключ хранится только в этом браузере. Пока ты на странице Sensei, проверки не делаются.',
+  secLock:'Режим замка', lockT:'Работать только в Sensei (полный экран)', lockTs:'Экран блокируется в полноэкранном режиме со встроенной рабочей зоной для заметок. Выход или переключение на другое окно считается нарушением. Для выхода есть аварийная кнопка.',
+  secExtra:'Фишки', careT:'Забота о теле', careTs:'Напомню выпрямить спину, отодвинуться от экрана и каждые 20 минут дам глазам отдых по правилу 20-20-20.',
+  paperT:'Работаю с бумагой или книгой', paperTs:'Не считать отвлечением взгляд вниз.',
+  soundL:'Фоновый звук для фокуса', snd_off:'Без звука', snd_brown:'Коричневый шум', snd_rain:'Дождь', snd_alpha:'Альфа-ритм (наушники)', soundS:'🎧',
+  start:'Начать сессию', loadingNN:'Загружаю нейросети…', camOn:'Включаю камеру…', screenAsk:'Выбери экран…',
+  nnReady:'Нейросети готовы · камера обрабатывается локально', nnErr:'Не удалось загрузить нейросети — проверь интернет и обнови страницу',
+  priv:'🔒 Видео с камеры обрабатывается прямо в браузере и никуда не отправляется. Сохраняется только статистика на твоём компьютере.',
+  today:'Сегодня', minFocus:'мин фокуса', daysRow:'дн. подряд', sessions:'сессий', last7:'Последние 7 дней', history:'История', histEmpty:'Пока пусто — начни первую сессию', untitled:'Без названия',
+  calH:'Сядь как обычно и смотри на экран', calSub:'Запоминаю твою рабочую позу…', calNoFace:'Не вижу лицо — сядь перед камерой',
+  eyesH:'Отдых для глаз', eyesS:'Посмотри на что-нибудь вдали (6+ метров) 20 секунд',
+  gateH:'Режим замка', gateS:'Экран развернётся на весь монитор. Работай в рабочей зоне. Выйдешь — я замечу.', gateBtn:'Закрыть замок', gateSkip:'Работать без замка',
+  pausedT:'ПАУЗА', wsH:'Рабочая зона', notesDl:'Скачать .txt', notesPh:'Пиши здесь: конспект, план, текст, решения…\n\nВсё сохраняется автоматически.',
+  focusNow:'Фокус сейчас', allClear:'Всё чисто', flowWord:'Поток', lvRamp:'Разгон', lvFocus:'Фокус', lvFlow:'ПОТОК', flowLeft:'Без отвлечений до режима «Поток» — ещё {t}', inFlow:'Ты в потоке — держи темп',
+  cDist:'отвлечений', cPhone:'телефон', cBest:'лучшая серия', cPct:'время в фокусе',
+  scrH:'Экран', scrOff:'не отслеживается', scrHere:'ты в Sensei', scrOk:'по задаче', scrWait:'жду первой проверки', scrOn:'Следить за экраном', scrOff2:'Перестать следить', scrAi:'Claude', scrLocal:'локально',
+  aiKeyBad:'Claude: неверный API-ключ', aiErr:'Claude: ошибка запроса (см. консоль)', screenDenied:'Доступ к экрану не дан — продолжаю без него.',
+  pause:'Пауза (P)', resume:'Продолжить (P)', pip:'Мини-окно', lockNow:'Включить замок', endBtn:'Завершить сессию',
+  emBtn:'Аварийный выход', alarmH:'Ты вышел из замка', alarmP:'Пока ты не вернёшься, это считается отвлечением.', reLock:'Вернуться в замок',
+  emH:'Аварийный выход?', emP:'Замок откроется, сессия продолжится в обычном режиме. Выход попадёт в статистику.', emHold:'Удерживай 3 секунды', emCancel:'Отмена — продолжаю работать',
+  fsFail:'Браузер не дал включить полный экран — замок работает в окне: уход в другое окно или вкладку всё равно засчитывается.', pipFail:'Мини-окно не открылось (нужен Chrome или Edge).',
+  camFail:'Нет доступа к камере. Разреши камеру в настройках браузера и попробуй ещё раз.', nnFail:'Нейросети не загрузились. Для первой загрузки нужен интернет.',
+  timeUp:'Время вышло — сессия завершена', ended:'Сессия завершена', tooShort:'Слишком коротко для оценки — поработай хотя бы 3 минуты.', noDist:'Ни одного отвлечения 🎯',
+  yawns:'Зевков', emergencies:'Аварийных выходов', sgTime:'длительность', checkQ:'Ты сделал то, что планировал?', chkYes:'Да', chkPartly:'Частично', chkNo:'Нет', again:'Новая сессия',
+  st_focus:'В ФОКУСЕ', st_phone:'ТЕЛЕФОН', st_away:'ТЕБЯ НЕТ', st_lookaway:'ОТВЛЁКСЯ', st_down:'СМОТРИШЬ ВНИЗ', st_sleepy:'СОН', st_screen:'НЕ ПО ЗАДАЧЕ', st_escape:'ВНЕ ЗАМКА', st_nosignal:'НЕТ СИГНАЛА', st_paused:'ПАУЗА', st_eyes:'ОТДЫХ ГЛАЗ',
+  al_phone:'ПОЛОЖИ ТЕЛЕФОН', al_away:'ВЕРНИСЬ К РАБОТЕ', al_lookaway:'СМОТРИ НА ЗАДАЧУ', al_down:'ПОДНИМИ ГЛАЗА', al_sleepy:'НЕ СПИ!', al_screen:'ЗАКРОЙ {app}', al_escape:'ВЕРНИСЬ В ЗАМОК',
+  ty_phone:'Телефон', ty_away:'Ушёл из кадра', ty_lookaway:'Отвлёкся', ty_down:'Смотрел вниз', ty_sleepy:'Засыпал', ty_screen:'Не тот экран', ty_escape:'Выход из замка', ty_focus:'В фокусе',
+  days:['вс','пн','вт','ср','чт','пт','сб'],
+  firstStepL:'С чего начнёшь? Самый первый маленький шаг', firstStepPh:'Например: открою документ и напишу 3 предложения', firstStepNote:'Конкретный первый шаг заметно повышает шанс начать и довести дело до конца (исследования Голлвитцера). Наставник напомнит его на старте.', firstStepSay:'Первый шаг: {s}. Начинай прямо сейчас.',
+  agentOk:'✓ Точный режим: Sensei-сервер сам видит активное приложение и сайт, делиться экраном не нужно.', agentNo:'Sensei-сервер не запущен, поэтому экран читается через OCR, а это менее точно. Для точного режима запусти в папке приложения: python3 sensei_server.py',
+  scrAgent:'точно', scrNotMonitor:'Ты выбрал не весь экран, поэтому другие приложения не видны. Нажми «Перестать следить», затем «Следить» и выбери «Весь экран».',
+  urlDenied:'Чтобы видеть сайт в браузере, разреши доступ в окне macOS или в Системных настройках → Конфиденциальность и безопасность → Автоматизация.',
+  learnH:'Покажи свой телефон', learnS:'Держи его в рамке задней стороной к камере 3 секунды. Я запомню, как он выглядит, и буду узнавать его точнее.', learnSkip:'Пропустить', learnDone:'Запомнил твой телефон. Теперь его не спрячешь.', learnBtn:'Обучить на телефоне', relearnBtn:'Переобучить телефон',
+  parkBtn:'Мысль на потом (N)', parkH:'Мысль на потом', parkHint:'Запиши отвлекающую мысль и сразу возвращайся. После сессии я её покажу.', parkPh:'Например: написать маме, купить хлеб…', parkSaved:'Записал. Вернёмся к этому после сессии.', parkSum:'Мысли на потом', emCancel2:'Закрыть (Esc)',
+  strictT:'🔒 Строгий режим: только разрешённые приложения', strictTs:'Как «Гид-доступ», только для Mac: откроешь что-то не из списка — Sensei сразу вернёт тебя в разрешённое окно, а запрещённый сайт закроет. Выйти можно аварийной кнопкой или объяснив учителю, что ты сделал.',
+  allowAppsL:'Разрешённые приложения (нажми, чтобы выбрать)', appsRefresh:'↻ Обновить список запущенных', allowSitesL:'Разрешённые сайты (через запятую)', allowSitesPh:'например: docs.google.com, stackoverflow.com, github.com',
+  strictNote:'Нужен Sensei-сервер. Чтобы закрывать сайты, macOS один раз спросит разрешение на управление браузером.', strictNeedServer:'Строгий режим работает только с Sensei-сервером — сессия идёт без него.',
+  strictBlocked:'Не сейчас. «{app}» не входит в разрешённые.', strictSiteBlocked:'Сайт {d} закрыт на эту сессию.', feynBtn:'🎓 Заработать 10 минут перерыва', strictExit:'🔓 Выйти из строгого режима', strictOff:'Строгий режим выключен до конца сессии.',
+  fyIntroH_end:'Хочешь закончить раньше — объясни', fyIntroH_break:'10 минут перерыва — за объяснение', fyIntroP:'За 60 секунд своими словами объясни, что ты сейчас выучил или сделал по цели «{g}». Говори вслух (я слушаю) или пиши. Потом задам один вопрос на понимание.',
+  fyStart:'Начать (60 секунд)', fyExplainH:'Объясняй…', fyExplainP:'Говори или пиши. Чем конкретнее, тем лучше.', fyDone:'Готово', fyThinking:'Учитель думает…', fyAnswerH:'Вопрос учителя', fyAnswer:'Ответить',
+  fyPassH:'Засчитано ✅', fyFailH:'Пока не засчитано', fyRetryLater:'Попробовать снова можно через 5 минут. Возвращайся к работе.', fyCooldown:'Следующая попытка через {m} мин.',
+  fyLocalQ:'Хорошо. А теперь: где в твоей работе было самое сложное место и почему ты сделал именно так? Приведи конкретный пример.', fyLocalNote:' (без API-ключа проверка упрощённая)', fyTooShort:'Слишком коротко — нужно подробное объяснение своими словами.',
+  fyEndOk:'Объяснил — можешь заканчивать.', fyBreakOk:'Объяснил — 10 минут твои. Потом сразу назад.', fyContinue:'Вернуться к работе', fyOk:'Отлично',
+  snapH:'Поднеси тетрадь к камере', needKey:'Для этого нужен API-ключ Anthropic (настройки → Экран → Умная проверка).', paperChecking:'Смотрю на твою работу…', pk_social:'перерыв (заработан)', driftsCaught:'Перехвачено уплываний',
+  st_think:'ДУМАЕШЬ 🤔', st_write:'ПИШЕШЬ ✍️', driftSay:'Чувствую, начинаешь уплывать. Вернись к «{g}».', paperOffer:'Закончил писать? Поднеси тетрадь к камере — нажми «📄 Проверить тетрадь», я посмотрю на ошибки.',
+  needGoal:'Сначала поставь цель сессии — что будет готово к концу?', checkQ2:'Цель: «{g}». Выполнил?', goalStat:'Цели выполнены: {d} из {n}',
+  chatPh:'Спроси учителя: «можно в туалет?»…', noMic:'Голосовой ввод не поддерживается этим браузером — пиши текстом.', micHint:'Говори…',
+  phH:'Телефон', phPair:'📱 Подключить телефон', phPairSetup:'📱 Подключить телефон к Sensei', phSleep:'выключен — так и надо 👍', phWoke:'Телефон включился. Если это не звонок — выключи его и положи.', phHeld:'экран выключен — проверяю…', phNone:'не подключён', phOk:'лежит на месте', phHidden:'ушёл с экрана Sensei!', phMoving:'в руках!', phLost:'нет связи',
+  pairAlt:'Если не открывается — телефон в другой сети. Подключи его к той же Wi-Fi, что и Mac, или попробуй запасной адрес:',
+  pairH:'Подключи телефон', pairDone:'Готово', pairNoServer:'Sensei-сервер не запущен, поэтому телефон подключить нельзя. Запусти в папке приложения: python3 sensei_server.py',
+  pairSteps:['Телефон и Mac должны быть в одной сети Wi-Fi.','Наведи камеру телефона на QR-код и открой ссылку.','Появится предупреждение о сертификате: это нормально для локальной сети. На iPhone: «Подробнее» → «Посетить веб-сайт». На Android: «Дополнительные» → «Перейти на сайт».','Нажми «Подключиться».','Оставь открытой страницу Sensei, положи телефон и выключи экран — так и надо. Включишь его или возьмёшь в руки — Sensei сразу узнает.'],
+  st_pass:'ПАУЗА: {k} {t}', pk_toilet:'туалет', pk_water:'вода', pk_pills:'лекарство', pk_call:'звонок', pk_food:'перекус', pk_break:'перерыв', pk_stretch:'разминка', pk_other:'пауза', ty_pass:'Разрешённая пауза'
+},
+en:{
+  tagline:'your personal focus coach', h1a:'Work.', h1b:'I am watching.',
+  lead:'The camera and a neural network watch you — and, if you want, your screen too. Reach for your phone, open Telegram or start dozing off, and your coach will call it out loud.',
+  taskQ:'🎯 Session goal: what will be done by the end?', taskPh:'e.g. write the thesis introduction (1 page)', taskNote:'No goal, no session. At the end your teacher will ask whether you achieved it.',
+  durL:'Duration, min', noTimer:'No timer', coachL:'Who is watching you', sensL:'Strictness', sens0:'Gentle', sens1:'Normal', sens2:'Strict',
+  secVoice:'Voice', voiceT:'Coach speaks out loud', voiceSel:'Voice', voiceTest:'Test', voiceAuto:'Auto',
+  noVoice:'No English voice found on this system — the browser may read with a different voice. Install one in your OS speech settings, then restart the browser.',
+  voiceOk:'{n} suitable voices. The best one is picked automatically — press “Test”.',
+  voiceWeak:'No high-quality English voice found, so it may sound robotic. Install an “Enhanced” or “Premium” voice in your OS speech settings, then restart the browser.',
+  secScreen:'Screen', screenT:'Watch my screen', screenTs:'I will notice Telegram, Instagram, YouTube and other distractions on your computer.',
+  appsL:'What counts as a distraction', extraL:'Your own distraction words (comma separated)', extraPh:'e.g. amazon, espn, twitch',
+  ocrNote:'The basic check runs locally: about every 5 seconds I read the active app name in the Mac menu bar and the site address in your browser. Text on the page itself is ignored, so a chat that merely mentions “Facebook” will not trigger it. Nothing is sent anywhere. If an app is in full screen (no menu bar), only the smart check can see it.',
+  scrSeen:'seeing: {app} {dom}',
+  aiT:'Smart check with Claude', aiTs:'Claude looks at a screenshot and decides whether it relates to your task. Requires your own Anthropic API key.',
+  keyL:'Anthropic API key', modelL:'Model and frequency',
+  every30:'every 30 s', every60:'every minute', every120:'every 2 min',
+  aiNote:'In this mode screenshots of your screen are sent to the Anthropic API and every check costs money (Haiku is much cheaper than Opus). The key is stored only in this browser. No checks run while you are on the Sensei page.',
+  secLock:'Lock mode', lockT:'Work only inside Sensei (full screen)', lockTs:'The page locks into full screen with a built-in workspace for notes. Leaving it or switching to another window counts as a violation. There is an emergency exit.',
+  secExtra:'Extras', careT:'Body care', careTs:'I will remind you to sit up straight, lean back from the screen, and every 20 minutes rest your eyes with the 20-20-20 rule.',
+  paperT:'I work with paper or a book', paperTs:'Do not count looking down as a distraction.',
+  soundL:'Background focus sound', snd_off:'Silence', snd_brown:'Brown noise', snd_rain:'Rain', snd_alpha:'Alpha beats (headphones)', soundS:'🎧',
+  start:'Start session', loadingNN:'Loading neural networks…', camOn:'Turning on camera…', screenAsk:'Choose your screen…',
+  nnReady:'Neural networks ready · camera is processed locally', nnErr:'Could not load the neural networks — check your internet and reload',
+  priv:'🔒 Camera video is processed right in your browser and never sent anywhere. Only statistics are saved on your computer.',
+  today:'Today', minFocus:'focus min', daysRow:'day streak', sessions:'sessions', last7:'Last 7 days', history:'History', histEmpty:'Nothing yet — start your first session', untitled:'Untitled',
+  calH:'Sit as usual and look at the screen', calSub:'Learning your working posture…', calNoFace:'I cannot see your face — sit in front of the camera',
+  eyesH:'Eye break', eyesS:'Look at something far away (20+ feet) for 20 seconds',
+  gateH:'Lock mode', gateS:'The page will go full screen. Work in the workspace. If you leave, I will notice.', gateBtn:'Close the lock', gateSkip:'Work without the lock',
+  pausedT:'PAUSED', wsH:'Workspace', notesDl:'Download .txt', notesPh:'Write here: notes, plan, draft, solutions…\n\nEverything is saved automatically.',
+  focusNow:'Focus now', allClear:'All clear', flowWord:'Flow', lvRamp:'Warming up', lvFocus:'Focus', lvFlow:'FLOW', flowLeft:'Flow mode in {t} without distractions', inFlow:'You are in the flow — keep going',
+  cDist:'distractions', cPhone:'phone', cBest:'best streak', cPct:'time in focus',
+  scrH:'Screen', scrOff:'not watched', scrHere:'you are in Sensei', scrOk:'on task', scrWait:'waiting for first check', scrOn:'Watch my screen', scrOff2:'Stop watching', scrAi:'Claude', scrLocal:'local',
+  aiKeyBad:'Claude: invalid API key', aiErr:'Claude: request error (see console)', screenDenied:'Screen access was not granted — continuing without it.',
+  pause:'Pause (P)', resume:'Resume (P)', pip:'Mini window', lockNow:'Turn on lock', endBtn:'End session',
+  emBtn:'Emergency exit', alarmH:'You left the lock', alarmP:'Until you come back, this counts as a distraction.', reLock:'Back into the lock',
+  emH:'Emergency exit?', emP:'The lock will open and the session continues in normal mode. The exit goes into your stats.', emHold:'Hold for 3 seconds', emCancel:'Cancel — keep working',
+  fsFail:'The browser did not allow full screen — the lock works in the window: switching to another window or tab still counts.', pipFail:'The mini window did not open (needs Chrome or Edge).',
+  camFail:'No camera access. Allow the camera in your browser settings and try again.', nnFail:'Neural networks failed to load. The first load needs internet.',
+  timeUp:'Time is up — session complete', ended:'Session complete', tooShort:'Too short to grade — work at least 3 minutes.', noDist:'Zero distractions 🎯',
+  yawns:'Yawns', emergencies:'Emergency exits', sgTime:'duration', checkQ:'Did you do what you planned?', chkYes:'Yes', chkPartly:'Partly', chkNo:'No', again:'New session',
+  st_focus:'FOCUSED', st_phone:'PHONE', st_away:'AWAY', st_lookaway:'DISTRACTED', st_down:'LOOKING DOWN', st_sleepy:'SLEEPY', st_screen:'OFF TASK', st_escape:'OUT OF LOCK', st_nosignal:'NO SIGNAL', st_paused:'PAUSED', st_eyes:'EYE BREAK',
+  al_phone:'PUT THE PHONE DOWN', al_away:'BACK TO WORK', al_lookaway:'EYES ON THE TASK', al_down:'LOOK UP', al_sleepy:'WAKE UP!', al_screen:'CLOSE {app}', al_escape:'BACK INTO THE LOCK',
+  ty_phone:'Phone', ty_away:'Left the frame', ty_lookaway:'Distracted', ty_down:'Looked down', ty_sleepy:'Dozing', ty_screen:'Wrong screen', ty_escape:'Left the lock', ty_focus:'Focused',
+  days:['Su','Mo','Tu','We','Th','Fr','Sa'],
+  firstStepL:'How will you start? The very first small step', firstStepPh:'e.g. open the doc and write 3 sentences', firstStepNote:'A concrete first step makes you much more likely to start and finish (Gollwitzer’s research). Your coach will remind you at the start.', firstStepSay:'First step: {s}. Start right now.',
+  agentOk:'✓ Precise mode: the Sensei server sees the active app and site, so no screen sharing is needed.', agentNo:'The Sensei server is not running, so the screen is read with OCR, which is less accurate. For precise mode run in the app folder: python3 sensei_server.py',
+  scrAgent:'precise', scrNotMonitor:'You did not pick the entire screen, so other apps are invisible. Press “Stop watching”, then “Watch” and choose “Entire screen”.',
+  urlDenied:'To see the site in your browser, allow access in the macOS prompt or in System Settings → Privacy & Security → Automation.',
+  learnH:'Show me your phone', learnS:'Hold it inside the frame, back to the camera, for 3 seconds. I will remember how it looks and recognize it more reliably.', learnSkip:'Skip', learnDone:'Got your phone. You cannot hide it now.', learnBtn:'Teach my phone', relearnBtn:'Re-teach phone',
+  parkBtn:'Thought for later (N)', parkH:'Thought for later', parkHint:'Write down the distracting thought and get straight back. I will show it after the session.', parkPh:'e.g. text mom, buy bread…', parkSaved:'Saved. We will get back to it after the session.', parkSum:'Thoughts for later', emCancel2:'Close (Esc)',
+  strictT:'🔒 Strict mode: only allowed apps', strictTs:'Like Guided Access, but for your Mac: open anything off the list and Sensei instantly sends you back to an allowed window and closes the blocked site. Exit with the emergency button or by explaining to your teacher what you did.',
+  allowAppsL:'Allowed apps (tap to select)', appsRefresh:'↻ Refresh running apps', allowSitesL:'Allowed sites (comma separated)', allowSitesPh:'e.g. docs.google.com, stackoverflow.com, github.com',
+  strictNote:'Needs the Sensei server. To close sites, macOS will ask once for permission to control your browser.', strictNeedServer:'Strict mode works only with the Sensei server — the session runs without it.',
+  strictBlocked:'Not now. “{app}” is not on your allowed list.', strictSiteBlocked:'{d} is closed for this session.', feynBtn:'🎓 Earn a 10-minute break', strictExit:'🔓 Leave strict mode', strictOff:'Strict mode is off for the rest of the session.',
+  fyIntroH_end:'Want to finish early? Explain first', fyIntroH_break:'A 10-minute break — for an explanation', fyIntroP:'In 60 seconds, explain in your own words what you just learned or did for your goal “{g}”. Speak aloud (I am listening) or type. Then I will ask one question to check your understanding.',
+  fyStart:'Start (60 seconds)', fyExplainH:'Explain…', fyExplainP:'Speak or type. The more specific, the better.', fyDone:'Done', fyThinking:'Your teacher is thinking…', fyAnswerH:'Teacher’s question', fyAnswer:'Answer',
+  fyPassH:'Accepted ✅', fyFailH:'Not accepted yet', fyRetryLater:'You can try again in 5 minutes. Back to work.', fyCooldown:'Next attempt in {m} min.',
+  fyLocalQ:'Good. Now: what was the hardest part of your work, and why did you do it that way? Give a concrete example.', fyLocalNote:' (without an API key the check is basic)', fyTooShort:'Too short — I need a detailed explanation in your own words.',
+  fyEndOk:'You explained it — you may finish.', fyBreakOk:'You explained it — 10 minutes are yours. Then straight back.', fyContinue:'Back to work', fyOk:'Great',
+  snapH:'Hold your notebook up to the camera', needKey:'This needs an Anthropic API key (settings → Screen → Smart check).', paperChecking:'Looking at your work…', pk_social:'break (earned)', driftsCaught:'Drifts caught',
+  st_think:'THINKING 🤔', st_write:'WRITING ✍️', driftSay:'I sense you starting to drift. Back to “{g}”.', paperOffer:'Done writing? Hold your notebook up to the camera — press “📄 Check notebook” and I will look for mistakes.',
+  needGoal:'Set a session goal first — what will be done by the end?', checkQ2:'Goal: “{g}”. Did you achieve it?', goalStat:'Goals achieved: {d} of {n}',
+  chatPh:'Ask your teacher: “can I go to the toilet?”…', noMic:'Voice input is not supported in this browser — type instead.', micHint:'Speak…',
+  phH:'Phone', phPair:'📱 Connect phone', phPairSetup:'📱 Connect your phone to Sensei', phSleep:'off — exactly right 👍', phWoke:'Your phone just turned on. Unless it is a call, switch it off and put it down.', phHeld:'screen off — checking…', phNone:'not connected', phOk:'lying in place', phHidden:'left the Sensei screen!', phMoving:'in your hands!', phLost:'no connection',
+  pairAlt:'If it does not open, the phone is on another network. Join the same Wi-Fi as the Mac, or try a backup address:',
+  pairH:'Connect your phone', pairDone:'Done', pairNoServer:'The Sensei server is not running, so the phone cannot connect. Run in the app folder: python3 sensei_server.py',
+  pairSteps:['Your phone and Mac must be on the same Wi-Fi.','Point the phone camera at the QR code and open the link.','You will see a certificate warning — normal for a local network. iPhone: “Show Details” → “visit this website”. Android: “Advanced” → “Proceed”.','Tap “Connect”.','Keep the Sensei page open, put the phone down and switch the screen off — that is how it should be. Turn it on or pick it up and Sensei will know at once.'],
+  st_pass:'BREAK: {k} {t}', pk_toilet:'toilet', pk_water:'water', pk_pills:'medicine', pk_call:'call', pk_food:'snack', pk_break:'break', pk_stretch:'stretch', pk_other:'pause', ty_pass:'Allowed pause'
+}};
+
+const CARE = {
+  ru:{ close:'Ты слишком близко к экрану. Отодвинься немного — глазам будет легче.', posture:'Выпрями спину. Плечи назад.', eyes:'Правило 20-20-20: посмотри вдаль двадцать секунд.', eyesDone:'Отлично, глаза отдохнули. Продолжаем.', screenLost:'Я больше не вижу твой экран.', lockIn:'Замок закрыт. Только ты и задача.', emergency:'Аварийный выход. Замок открыт.',
+    blink:'Ты моргаешь всего {n} раз в минуту — у экрана глаза сохнут. Медленно моргни 10 раз и закрой глаза на 5 секунд.', neck:'Голова давно наклонена вбок — шея устанет. Выпрями её и сделай пару медленных поворотов.', water:'Сделай пару глотков воды — мозгу это помогает держать концентрацию.', move:'Ты сидишь уже 50 минут. После этой задачи встань и пройдись пару минут.', tired:'Ты зеваешь всё чаще — это усталость. Проветри комнату или умойся холодной водой.' },
+  en:{ close:'You are too close to the screen. Lean back a little — your eyes will thank you.', posture:'Straighten your back. Shoulders back.', eyes:'Twenty twenty twenty: look at something far away for twenty seconds.', eyesDone:'Great, your eyes rested. Let us continue.', screenLost:'I can no longer see your screen.', lockIn:'The lock is closed. Just you and the task.', emergency:'Emergency exit. The lock is open.',
+    blink:'You blink only {n} times a minute — eyes dry out at screens. Blink slowly 10 times and close your eyes for 5 seconds.', neck:'Your head has been tilted for a while — your neck will get tired. Straighten it and do a couple of slow turns.', water:'Have a few sips of water — it helps your brain stay focused.', move:'You have been sitting for 50 minutes. After this task, stand up and walk for a couple of minutes.', tired:'You are yawning more and more — that is fatigue. Air the room or splash cold water on your face.' }
+};
+
+const PERSONAS = {
+  sensei:{ name:{ru:'Сэнсэй',en:'Sensei'}, letter:{ru:'С',en:'S'}, tag:{ru:'Строгий. Без поблажек.',en:'Strict. No mercy.'}, rate:.95, pitch:.92,
+    ru:{ start:['Начинаем. Покажи, на что способен.','Тишина. Работа. Я слежу.'],
+      phone:['Телефон. Положи его.','Снова телефон. Ты пришёл сюда работать.','Третий раз. Слабость побеждает. Убери телефон — сейчас.'],
+      away:['Где ты? Возвращайся к работе.','Ты ушёл. Время идёт без тебя.','Опять ушёл. Дисциплина — это сидеть, даже когда не хочется.'],
+      lookaway:['Смотри на задачу.','Глаза на работу.','Ты снова отвлёкся. Соберись.'],
+      down:['Подними глаза. Что там внизу?','Опять смотришь вниз. Если это телефон — убери.','Слишком долго вниз. Подними голову.'],
+      sleepy:['Не спи. Встань, умойся, потом вернёшься.','Глаза закрыты. Это не отдых, это поражение.','Хватит клевать носом. Встань и пройдись.'],
+      screen:['{app}? Это не твоя задача. Закрой.','Снова {app}. Ты здесь не для этого.','{app} в третий раз. Закрой и работай.'],
+      escape:['Ты вышел из замка. Вернись.','Опять сбежал. Возвращайся.','Бегство — не решение. Назад, в замок.'],
+      nag:['Я всё ещё вижу, что ты не работаешь.','Каждая секунда — выбор. Выбирай работу.'],
+      back:['Хорошо. Продолжай.','Вернулся. Не останавливайся.'],
+      praise:['{m} минут чистого фокуса. Неплохо.','{m} минут без отвлечений. Так держать.','{m} минут. Это и есть дисциплина.'],
+      flow:'Поток. Не ломай его.',
+      verdict:{S:'Безупречно. Так работают те, кто добивается своего.',A:'Сильная сессия. Совсем немного до идеала.',B:'Неплохо, но ты можешь лучше. Меньше слабостей.',C:'Слабо. Завтра — без телефона, без оправданий.',D:'Это была не работа. Завтра начнёшь заново, и я буду смотреть.'},
+      done:{yes:'Хорошо. Слово сдержано.',partly:'Половина — это не результат. Завтра — до конца.',no:'Тогда завтра начнёшь раньше.'} },
+    en:{ start:['We begin. Show me what you are capable of.','Silence. Work. I am watching.'],
+      phone:['Phone. Put it down.','The phone again. You came here to work.','Third time. Weakness is winning. Put the phone away — now.'],
+      away:['Where are you? Back to work.','You left. Time moves on without you.','Gone again. Discipline is staying when you do not want to.'],
+      lookaway:['Eyes on the task.','Look at your work.','You drifted again. Focus.'],
+      down:['Look up. What is down there?','Looking down again. If it is your phone — put it away.','Too long looking down. Raise your head.'],
+      sleepy:['Do not sleep. Stand up, wash your face, then return.','Eyes closed. That is not rest, that is defeat.','Stop nodding off. Stand up and walk.'],
+      screen:['{app}? That is not your task. Close it.','{app} again. That is not why you are here.','{app} a third time. Close it and work.'],
+      escape:['You left the lock. Come back.','Escaping again. Return.','Running away solves nothing. Back into the lock.'],
+      nag:['I still see you are not working.','Every second is a choice. Choose the work.'],
+      back:['Good. Continue.','You are back. Do not stop.'],
+      praise:['{m} minutes of pure focus. Not bad.','{m} minutes without distraction. Keep going.','{m} minutes. This is discipline.'],
+      flow:'Flow. Do not break it.',
+      verdict:{S:'Flawless. This is how people who win work.',A:'Strong session. Very close to perfect.',B:'Not bad, but you can do better. Fewer weaknesses.',C:'Weak. Tomorrow: no phone, no excuses.',D:'That was not work. Tomorrow you start again, and I will be watching.'},
+      done:{yes:'Good. You kept your word.',partly:'Half is not a result. Tomorrow — all the way.',no:'Then tomorrow you start earlier.'} } },
+  friend:{ name:{ru:'Мира',en:'Mira'}, letter:{ru:'М',en:'M'}, tag:{ru:'Добрая. Поддерживает.',en:'Kind. Supportive.'}, rate:1.0, pitch:1.08,
+    ru:{ start:['Привет! Я рядом. Давай сделаем это вместе.','Поехали, у тебя всё получится.'],
+      phone:['Эй, вижу телефон. Давай отложим его на потом?','Снова телефон. Ничего страшного — отложи и возвращайся.','Я в тебя верю. Убери телефон, ещё чуть-чуть, и отдохнёшь.'],
+      away:['Ты где? Я тебя не вижу. Возвращайся, когда будешь готов.','Всё в порядке, перерыв тоже нужен. Но не затягивай.','Скучаю по тебе в кадре. Вернёшься?'],
+      lookaway:['Эй, давай вернёмся к задаче.','Мысли убежали? Бывает. Возвращайся.','Ещё немного, и ты молодец.'],
+      down:['Ты смотришь вниз. Всё хорошо?','Если там телефон — давай уберём его.','Подними взгляд, мы почти справились.'],
+      sleepy:['Кажется, ты устал. Может, умоешься?','Глазки закрываются. Давай сделаем паузу и потянемся.','Не мучай себя. Встань и разомнись минутку.'],
+      screen:['Ой, это {app}? Давай вернёмся к задаче.','Снова {app}. Закроем его вместе?','{app} подождёт. Ты сейчас важнее.'],
+      escape:['Эй, ты вышел из режима фокуса. Вернёшься?','Я подожду, возвращайся в замок.','Давай вернёмся, мы же договорились.'],
+      nag:['Я всё ещё жду тебя здесь.','Давай вернёмся, я рядом.'],
+      back:['Ура, ты вернулся!','Вот так, молодец. Продолжаем.'],
+      praise:['{m} минут подряд! Я тобой горжусь.','Уже {m} минут без отвлечений. Ты супер!','{m} минут — вот это сила воли!'],
+      flow:'Ты в потоке! Это невероятно.',
+      verdict:{S:'Идеально! Я тобой очень горжусь.',A:'Отличная работа! Совсем чуть-чуть до идеала.',B:'Хорошо получилось! В следующий раз будет ещё лучше.',C:'Сегодня было непросто, но ты справился. Завтра выйдет лучше.',D:'Не вышло — и это нормально. Отдохни, а завтра попробуем снова.'},
+      done:{yes:'Ура! Я так тобой горжусь!',partly:'Часть сделана — это уже шаг вперёд!',no:'Ничего страшного. Завтра получится.'} },
+    en:{ start:['Hi! I am right here. Let us do this together.','Here we go, you have got this.'],
+      phone:['Hey, I see a phone. Shall we put it away for later?','The phone again. No worries — put it down and come back.','I believe in you. Put the phone away, just a little more and you can rest.'],
+      away:['Where did you go? Come back when you are ready.','It is okay, breaks matter too. Just do not make it too long.','I miss you in the frame. Coming back?'],
+      lookaway:['Hey, let us get back to the task.','Mind wandered off? It happens. Come back.','Just a bit more, you are doing great.'],
+      down:['You are looking down. Everything okay?','If that is your phone — let us put it away.','Look up, we are almost there.'],
+      sleepy:['Looks like you are tired. Maybe splash some water on your face?','Eyes are closing. Let us pause and stretch.','Do not push too hard. Stand up and move a little.'],
+      screen:['Oh, is that {app}? Let us get back to the task.','{app} again. Shall we close it together?','{app} can wait. You matter more right now.'],
+      escape:['Hey, you left focus mode. Coming back?','I will wait — come back into the lock.','Let us go back, we made a deal.'],
+      nag:['I am still waiting for you here.','Let us get back, I am right here.'],
+      back:['Yay, you are back!','That is it, well done. Let us continue.'],
+      praise:['{m} minutes in a row! I am so proud of you.','Already {m} minutes without distractions. You are amazing!','{m} minutes — what willpower!'],
+      flow:'You are in the flow! This is incredible.',
+      verdict:{S:'Perfect! I am so proud of you.',A:'Great work! Just a tiny bit from perfect.',B:'Nice job! Next time will be even better.',C:'Today was hard, but you made it through. Tomorrow will be better.',D:'It did not work out — and that is okay. Rest, and we will try again tomorrow.'},
+      done:{yes:'Yay! I am so proud of you!',partly:'Part of it is done — that is already progress!',no:'No worries. Tomorrow it will work.'} } },
+  coach:{ name:{ru:'Тренер',en:'Coach'}, letter:{ru:'Т',en:'C'}, tag:{ru:'Заряжает. Давит. Работает.',en:'Hype. Pressure. Results.'}, rate:1.07, pitch:1.0,
+    ru:{ start:['Разминка закончена! Работаем на максимум!','Поехали! Сегодня мы выжмем всё!'],
+      phone:['Стоп! Телефон вниз! Мы тут чемпионов куём!','Опять телефон? Собрался! Ещё один подход!','Три раза! Телефон — враг! Убираем и в бой!'],
+      away:['Эй! Куда ушёл? Вернись на площадку!','Игрок покинул поле! Возвращайся!','Снова на скамейке? Давай в игру!'],
+      lookaway:['Глаза на цель!','Не расслабляйся! Фокус!','Вернись в игру, чемпион!'],
+      down:['Голову выше! Что там внизу?','Если это телефон — убери! Сейчас!','Смотри вперёд, победа там!'],
+      sleepy:['Не спим! Встань, сделай десять приседаний!','Просыпайся! Вода, воздух — и в бой!','Энергия! Встал и размялся!'],
+      screen:['{app}?! Это не тренировка! Закрывай!','Опять {app}! Фокус, чемпион!','{app} — это скамейка запасных! Закрыл и в игру!'],
+      escape:['Ты покинул площадку! Назад в замок!','Сбежал с тренировки? Вернись!','Чемпионы не сбегают! В замок!'],
+      nag:['Время идёт! Давай, давай!','Ну же! Ты можешь больше!'],
+      back:['Вот это другое дело! Вперёд!','Отлично! Не останавливайся!'],
+      praise:['{m} минут без пауз! Мощно!','{m} минут чистого фокуса! Вот это класс!','{m} минут! Ты машина!'],
+      flow:'ПОТОК! Ты неудержим!',
+      verdict:{S:'Чемпион! Идеальная сессия!',A:'Мощно! Чуть-чуть до золота!',B:'Хороший заход! Но можно жёстче!',C:'Слабовато! В следующий раз выкладываемся!',D:'Провал! Но чемпионы возвращаются. Завтра — реванш!'},
+      done:{yes:'Есть! Цель взята!',partly:'Половина пути! Завтра добиваем!',no:'Проиграли раунд, но не бой! Завтра реванш!'} },
+    en:{ start:['Warm-up is over! Full power!','Let us go! Today we squeeze out everything!'],
+      phone:['Stop! Phone down! We are building champions here!','Phone again? Get it together! One more rep!','Three times! The phone is the enemy! Put it away and fight!'],
+      away:['Hey! Where did you go? Back on the court!','Player has left the field! Get back!','On the bench again? Get in the game!'],
+      lookaway:['Eyes on the goal!','Do not relax! Focus!','Back in the game, champ!'],
+      down:['Head up! What is down there?','If that is your phone — put it away! Now!','Look forward, victory is there!'],
+      sleepy:['No sleeping! Stand up, ten squats!','Wake up! Water, fresh air — and back to battle!','Energy! Stand up and stretch!'],
+      screen:['{app}?! That is not training! Close it!','{app} again! Focus, champ!','{app} is the bench! Close it and get in the game!'],
+      escape:['You left the court! Back into the lock!','Skipping practice? Come back!','Champions do not run! Into the lock!'],
+      nag:['Clock is ticking! Come on, come on!','Come on! You can do more!'],
+      back:['Now that is more like it! Forward!','Great! Do not stop!'],
+      praise:['{m} minutes without a break! Powerful!','{m} minutes of pure focus! Outstanding!','{m} minutes! You are a machine!'],
+      flow:'FLOW! You are unstoppable!',
+      verdict:{S:'Champion! A perfect session!',A:'Powerful! Just short of gold!',B:'Good round! But you can push harder!',C:'A bit weak! Next time we give it everything!',D:'A loss! But champions come back. Tomorrow — the rematch!'},
+      done:{yes:'Yes! Goal achieved!',partly:'Halfway there! Tomorrow we finish it!',no:'Lost the round, not the fight! Rematch tomorrow!'} } }
+};
+
+// app — имя активного приложения в строке меню macOS; dom — домен в адресной строке браузера
+const APPS = [
+  {id:'telegram', label:'Telegram', app:/^telegram/i, dom:/telegram\.org|(^|\s)t\.me\b/},
+  {id:'instagram', label:'Instagram', app:/^instagram/i, dom:/instagram\.com/},
+  {id:'youtube', label:'YouTube', app:/^youtube/i, dom:/youtube\.com|youtu\.be/},
+  {id:'tiktok', label:'TikTok', app:/^tiktok/i, dom:/tiktok\.com/},
+  {id:'vk', label:'VK', app:/^vk\b|^вконтакте/i, dom:/(^|[^a-z0-9])vk\.(com|ru)/},
+  {id:'whatsapp', label:'WhatsApp', app:/^whatsapp/i, dom:/whatsapp\.com/},
+  {id:'x', label:'X / Twitter', app:/^twitter$|^x$/i, dom:/twitter\.com|(^|[^a-z0-9.-])x\.com/},
+  {id:'facebook', label:'Facebook', app:/^facebook|^messenger/i, dom:/facebook\.com|messenger\.com/},
+  {id:'reddit', label:'Reddit', app:/^reddit/i, dom:/reddit\.com/},
+  {id:'netflix', label:'Netflix / Кинопоиск', app:/^netflix|^кинопоиск|^tv$/i, dom:/netflix\.com|kinopoisk\.ru|ivi\.ru|okko\.tv/},
+  {id:'twitch', label:'Twitch', app:/^twitch/i, dom:/twitch\.tv/},
+  {id:'discord', label:'Discord', app:/^discord/i, dom:/discord\.com/},
+  {id:'games', label:'Игры / Games', app:/^(steam|minecraft|roblox|epic|battle\.net|chess)/i, dom:/chess\.com|lichess\.org|roblox\.com|poki\.com|crazygames/}
+];
+const BROWSERS = /^(chrome|google|safari|firefox|arc|edge|microsoft|opera|brave|yandex|яндекс|vivaldi|orion|zen|dia|comet)/i;
+
+/* ================= settings ================= */
+const settings = Object.assign({ strict:false, allowApps:[], allowSites:'', task:'', firstStep:'', phoneProfile:null, learnSkipped:false, dur:50, coach:'sensei', sens:1, voice:true, voiceName:'', paper:false, lang:'ru',
+  screen:false, apps:APPS.map(a=>a.id), extra:'', ai:false, apiKey:'', aiModel:'claude-opus-5-5', aiEvery:60,
+  lock:false, care:true, sound:'off', vol:.4 }, store.get('sensei.settings', {}));
+const saveSettings = () => store.set('sensei.settings', settings);
+const L = () => settings.lang;
+const t = (k, vars) => { let s = I18N[L()][k] ?? I18N.ru[k] ?? k; if(vars && typeof s==='string') for(const v in vars) s=s.split('{'+v+'}').join(vars[v]); return s; };
+const P = () => PERSONAS[settings.coach];
+const lines = () => P()[L()];
+const care = k => CARE[L()][k];
+
+function applyI18n(){
+  document.documentElement.lang = L();
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('#langSw button').forEach(b => b.classList.toggle('on', b.dataset.l===L()));
+  document.querySelectorAll('#durRow .pill').forEach(b => { if(b.dataset.v!=='0') b.textContent = b.dataset.v + (L()==='ru'?' мин':' min'); });
+  $('#coachRow').innerHTML = Object.entries(PERSONAS).map(([id,p]) => `<button class="coachc ${id===settings.coach?'on':''}" data-id="${id}"><b>${p.name[L()]}</b><span>${p.tag[L()]}</span></button>`).join('');
+  $('#pauseBtn').textContent = t(S&&S.paused?'resume':'pause');
+  if(!modelsReady && !modelsErr) $('#msText').textContent=t('loadingNN');
+  else if(modelsReady) $('#msText').textContent=t('nnReady'); else $('#msText').textContent=t('nnErr');
+  fillVoices(); renderStats(); buildLegend(); showAgentNote();
+  if(!S) document.title = 'Sensei — ' + t('tagline');
+}
+
+function buildSetup(){
+  $('#task').value = settings.task; $('#extra').value = settings.extra; $('#apiKey').value = settings.apiKey;
+  $('#aiModel').value = settings.aiModel; $('#aiEvery').value = String(settings.aiEvery); $('#vol').value = settings.vol;
+  $('#appsRow').innerHTML = APPS.map(a=>`<button class="pill sm bad" data-id="${a.id}">${a.label}</button>`).join('');
+  const sync = () => {
+    document.querySelectorAll('#durRow .pill').forEach(b => b.classList.toggle('on', +b.dataset.v === settings.dur));
+    document.querySelectorAll('#sensRow .pill').forEach(b => b.classList.toggle('on', +b.dataset.v === settings.sens));
+    document.querySelectorAll('#soundRow .pill').forEach(b => b.classList.toggle('on', b.dataset.v === settings.sound));
+    document.querySelectorAll('#appsRow .pill').forEach(b => b.classList.toggle('on', settings.apps.includes(b.dataset.id)));
+    document.querySelectorAll('.coachc').forEach(b => b.classList.toggle('on', b.dataset.id === settings.coach));
+    for(const [id,k] of [['voiceT','voice'],['paperT','paper'],['screenT','screen'],['aiT','ai'],['lockT','lock'],['careT','care'],['strictT','strict']]) $('#'+id).classList.toggle('on', !!settings[k]);
+    $('#strictOpts').classList.toggle('on', settings.strict);
+    $('#voiceOpts').classList.toggle('on', settings.voice);
+    $('#screenOpts').classList.toggle('on', settings.screen);
+    $('#aiOpts').classList.toggle('on', settings.ai);
+  };
+  const tog = (id,k,after) => $('#'+id).onclick = () => { settings[k]=!settings[k]; saveSettings(); sync(); after&&after(); };
+  tog('strictT','strict', ()=>{ if(settings.strict) loadApps(); });
+  tog('voiceT','voice'); tog('paperT','paper'); tog('screenT','screen'); tog('aiT','ai'); tog('lockT','lock'); tog('careT','care');
+  $('#durRow').onclick = e => { const b=e.target.closest('.pill'); if(!b) return; settings.dur=+b.dataset.v; saveSettings(); sync(); };
+  $('#sensRow').onclick = e => { const b=e.target.closest('.pill'); if(!b) return; settings.sens=+b.dataset.v; saveSettings(); sync(); };
+  $('#soundRow').onclick = e => { const b=e.target.closest('.pill'); if(!b) return; settings.sound=b.dataset.v; saveSettings(); sync(); initAudio(); setAmbient(settings.sound); };
+  $('#vol').oninput = e => { settings.vol=+e.target.value; saveSettings(); if(amb) amb.g.gain.value=settings.vol*.5; };
+  $('#appsRow').onclick = e => { const b=e.target.closest('.pill'); if(!b) return; const id=b.dataset.id; settings.apps = settings.apps.includes(id)? settings.apps.filter(x=>x!==id) : [...settings.apps,id]; saveSettings(); sync(); };
+  $('#coachRow').onclick = e => { const b=e.target.closest('.coachc'); if(!b) return; settings.coach=b.dataset.id; saveSettings(); sync(); previewVoice(); };
+  $('#langSw').onclick = e => { const b=e.target.closest('button'); if(!b) return; settings.lang=b.dataset.l; settings.voiceName=''; saveSettings(); applyI18n(); sync(); };
+  $('#task').oninput = e => { settings.task=e.target.value; saveSettings(); };
+  $('#firstStep').value = settings.firstStep;
+  $('#allowSites').value = settings.allowSites;
+  $('#allowSites').oninput = e => { settings.allowSites=e.target.value; saveSettings(); };
+  $('#appsRefresh').onclick = loadApps;
+  $('#allowApps').onclick = e => { const b=e.target.closest('.pill'); if(!b) return; const a=b.dataset.app; settings.allowApps = settings.allowApps.includes(a) ? settings.allowApps.filter(x=>x!==a) : [...settings.allowApps,a]; saveSettings(); b.classList.toggle('on'); };
+  if(settings.strict) loadApps();
+  $('#firstStep').oninput = e => { settings.firstStep=e.target.value; saveSettings(); };
+  $('#extra').oninput = e => { settings.extra=e.target.value; saveSettings(); };
+  $('#apiKey').oninput = e => { settings.apiKey=e.target.value.trim(); saveSettings(); aiClient=null; };
+  $('#aiModel').onchange = e => { settings.aiModel=e.target.value; saveSettings(); };
+  $('#aiEvery').onchange = e => { settings.aiEvery=+e.target.value; saveSettings(); };
+  $('#voiceSel').onchange = e => { settings.voiceName=e.target.value; saveSettings(); previewVoice(); };
+  $('#voiceTest').onclick = () => previewVoice();
+  applyI18n(); sync();
+}
+
+/* ================= history / stats ================= */
+const dayKey = ts => { const d=new Date(ts); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); };
+function renderStats(){
+  const hist = store.get('sensei.sessions', []);
+  const perDay = {};
+  for(const s of hist){ const k=dayKey(s.ts); perDay[k]=(perDay[k]||0)+s.focused; }
+  $('#sToday').textContent = Math.round((perDay[dayKey(Date.now())]||0)/60);
+  $('#sTotal').textContent = hist.length;
+  let streak=0; const d=new Date();
+  if((perDay[dayKey(d)]||0) < 600) d.setDate(d.getDate()-1);
+  while((perDay[dayKey(d)]||0) >= 600){ streak++; d.setDate(d.getDate()-1); }
+  $('#sStreak').textContent = streak;
+  const asked=hist.filter(x=>x.done); $('#goalStat').textContent = asked.length ? t('goalStat',{d:asked.filter(x=>x.done==='yes').length, n:asked.length}) : '';
+  const days=[]; for(let i=6;i>=0;i--){ const x=new Date(); x.setDate(x.getDate()-i); days.push({l:t('days')[x.getDay()], m:Math.round((perDay[dayKey(x)]||0)/60)}); }
+  const mx = Math.max(30, ...days.map(x=>x.m));
+  $('#week').innerHTML = days.map(x=>`<div title="${x.m}"><i class="${x.m?'':'empty'}" style="height:${Math.max(4,x.m/mx*100)}%"></i><span>${x.l}</span></div>`).join('');
+  const loc = L()==='ru'?'ru-RU':'en-US', mn = L()==='ru'?'мин':'min';
+  const mark = {yes:' ✓', partly:' ½', no:' ✗'};
+  $('#hist').innerHTML = hist.slice(-12).reverse().map(s=>{
+    const dt=new Date(s.ts); const when=dt.toLocaleDateString(loc,{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'});
+    return `<div><span>${esc(s.task||t('untitled'))}<b class="rk">${s.rank}${s.done?mark[s.done]:''}</b></span><em>${Math.round(s.focused/60)} ${mn} · ${s.pct}% · ${when}</em></div>`;
+  }).join('') || `<div><span style="color:var(--mu)">${t('histEmpty')}</span></div>`;
+}
+
+/* ================= models ================= */
+let face=null, obj=null, obj0=null, hands=null, modelsReady=false, modelsErr=null;
+const modelsPromise = (async()=>{
+  try{
+    const fs = await FilesetResolver.forVisionTasks(WASM);
+    for(const delegate of ['GPU','CPU']){
+      try{
+        face = await FaceLandmarker.createFromOptions(fs,{ baseOptions:{modelAssetPath:FACE_URL,delegate}, runningMode:'VIDEO', numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true });
+        // две модели: lite2 точнее, lite0 часто видит телефон в руке как «пульт» — вместе ловят больше
+        obj  = await ObjectDetector.createFromOptions(fs,{ baseOptions:{modelAssetPath:OBJ_URL,delegate}, runningMode:'VIDEO', scoreThreshold:.12, maxResults:6, categoryAllowlist:['cell phone','remote'] });
+        obj0 = await ObjectDetector.createFromOptions(fs,{ baseOptions:{modelAssetPath:OBJ0_URL,delegate}, runningMode:'VIDEO', scoreThreshold:.2, maxResults:6, categoryAllowlist:['cell phone','remote'] });
+        hands = await HandLandmarker.createFromOptions(fs,{ baseOptions:{modelAssetPath:HAND_URL,delegate}, runningMode:'VIDEO', numHands:2, minHandDetectionConfidence:.4 });
+        break;
+      }catch(e){ console.warn('delegate failed',delegate,e); for(const x of [face,obj,obj0,hands]){ try{x&&x.close()}catch{} } face=obj=obj0=hands=null; if(delegate==='CPU') throw e; }
+    }
+    modelsReady=true; $('#modelStatus').className='ready'; $('#msText').textContent=t('nnReady');
+  }catch(e){ modelsErr=e; console.error(e); $('#modelStatus').className='err'; $('#msText').textContent=t('nnErr'); }
+})();
+
+/* ================= audio, voice, ambient ================= */
+let ac=null, voices=[], amb=null;
+function initAudio(){ try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume(); }catch{} }
+function beep(f=660,d=.14,type='sine',vol=.07,delay=0){ if(!ac) return; const tt=ac.currentTime+delay, o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(vol,tt+.01); g.gain.exponentialRampToValueAtTime(.0001,tt+d); o.connect(g).connect(ac.destination); o.start(tt); o.stop(tt+d+.02); }
+const sfx = {
+  phone(){ beep(440,.16,'square',.06); beep(330,.2,'square',.06,.18); beep(220,.3,'square',.06,.38); },
+  warn(){ beep(620,.14,'sine',.08); beep(480,.2,'sine',.08,.16); },
+  screen(){ beep(880,.1,'triangle',.08); beep(660,.1,'triangle',.08,.12); beep(880,.1,'triangle',.08,.24); },
+  alarm(){ for(let i=0;i<4;i++){ beep(960,.12,'sawtooth',.05,i*.25); beep(720,.12,'sawtooth',.05,i*.25+.12); } },
+  good(){ beep(523,.12,'sine',.07); beep(659,.12,'sine',.07,.12); beep(784,.22,'sine',.07,.24); },
+  soft(){ beep(740,.3,'sine',.05); beep(988,.4,'sine',.04,.18); },
+  ready(){ beep(392,.1,'triangle',.07); beep(587,.18,'triangle',.07,.1); },
+  tick(){ beep(1800,.025,'square',.05); beep(1200,.03,'square',.04,.06); }
+};
+function stopAmbient(){ if(!amb) return; for(const n of amb.nodes){ try{n.stop()}catch{} } try{amb.g.disconnect()}catch{} amb=null; }
+function setAmbient(kind){
+  stopAmbient(); if(kind==='off' || !ac) return;
+  const g=ac.createGain(); g.gain.value=settings.vol*.5; g.connect(ac.destination); const nodes=[];
+  if(kind==='brown' || kind==='rain'){
+    const sr=ac.sampleRate, len=sr*12, N=Math.floor(sr*.5), buf=ac.createBuffer(2,len,sr);
+    for(let ch=0;ch<2;ch++){
+      const d=buf.getChannelData(ch); let last=0;
+      for(let i=0;i<len;i++){ const w=Math.random()*2-1; if(kind==='brown'){ last=(last+.02*w)/1.02; d[i]=last*3.5; } else d[i]=w*.35; }
+      for(let i=0;i<N;i++){ const a=i/N; d[len-N+i] = d[len-N+i]*(1-a) + d[i]*a; } // бесшовная петля
+    }
+    const src=ac.createBufferSource(); src.buffer=buf; src.loop=true; src.loopStart=N/sr; src.loopEnd=len/sr;
+    let out=src;
+    if(kind==='rain'){ const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=700; const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=6500; src.connect(hp); hp.connect(lp); out=lp; }
+    out.connect(g); src.start(0, N/sr); nodes.push(src);
+  } else if(kind==='alpha'){
+    const m=ac.createChannelMerger(2), o1=ac.createOscillator(), o2=ac.createOscillator(), g1=ac.createGain(), g2=ac.createGain();
+    o1.frequency.value=200; o2.frequency.value=210; g1.gain.value=g2.gain.value=.22;
+    o1.connect(g1); g1.connect(m,0,0); o2.connect(g2); g2.connect(m,0,1); m.connect(g); o1.start(); o2.start(); nodes.push(o1,o2);
+  }
+  amb={g,nodes};
+}
+function loadVoices(){ if(!('speechSynthesis' in window)) return; voices = speechSynthesis.getVoices(); fillVoices(); }
+// macOS ставит «многоязычные» голоса (Eddy, Flo, Reed, Grandma…) — они читают по-русски с сильным акцентом. Их не берём.
+const BAD_VOICE = /\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph|fred|kathy)\b|бабушка|дедушка/i;
+function voiceScore(v){
+  const n=v.name; let s=0;
+  if(/enhanced|premium|улучш|natural|neural/i.test(n)) s+=40;
+  if(L()==='ru'){ if(/google/i.test(n)) s+=30; if(/milena|милена|yuri|юрий|katya|катя|svetlana|dmitry|dariya|irina|pavel/i.test(n)) s+=25; }
+  else { if(/google us/i.test(n)) s+=30; else if(/google/i.test(n)) s+=25; if(/samantha|daniel|karen|aria|jenny|guy|ava|zoe|evan|moira|serena/i.test(n)) s+=25; }
+  if(v.lang.toLowerCase().replace('_','-') === (L()==='ru'?'ru-ru':'en-us')) s+=5;
+  return s;
+}
+const langVoices = () => voices
+  .filter(v => v.lang.toLowerCase().replace('_','-').startsWith(L()) && !BAD_VOICE.test(v.name))
+  .sort((a,b) => voiceScore(b)-voiceScore(a));
+function chooseVoice(){
+  const lv = langVoices();
+  if(settings.voiceName){ const v=lv.find(x=>x.name===settings.voiceName); if(v) return v; }
+  return lv[0] || null;
+}
+function fillVoices(){
+  const sel=$('#voiceSel'); if(!sel) return;
+  const lv=langVoices(), cur=chooseVoice();
+  sel.innerHTML = `<option value="">${t('voiceAuto')}${cur?' — '+esc(cur.name):''}</option>` + lv.map(v=>`<option value="${esc(v.name)}">${esc(v.name)} (${v.lang})</option>`).join('');
+  sel.value = lv.some(v=>v.name===settings.voiceName) ? settings.voiceName : '';
+  const good = cur && voiceScore(cur)>=25;
+  const h=$('#voiceHint'); h.textContent = !lv.length ? t('noVoice') : good ? t('voiceOk',{n:lv.length}) : t('voiceWeak'); h.className = 'note' + (good?'':' warn');
+}
+if('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function speak(text){
+  if(!settings.voice || !('speechSynthesis' in window)) return;
+  try{
+    if(!voices.length) voices = speechSynthesis.getVoices();
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text), v=chooseVoice(), p=P();
+    u.lang = v ? v.lang : (L()==='ru'?'ru-RU':'en-US'); if(v) u.voice=v; u.rate=p.rate; u.pitch=p.pitch;
+    speechSynthesis.speak(u);
+  }catch{}
+}
+let subTimer=0;
+function say(text){
+  $('#coachSay').textContent = text;
+  const sub=$('#sub'); sub.innerHTML = `<small>${esc(P().name[L()])}</small>${esc(text)}`; sub.classList.add('show');
+  clearTimeout(subTimer); subTimer=setTimeout(()=>sub.classList.remove('show'), 4800);
+  if(S) S.lastSay = performance.now();
+  if(TEST){ SIM.said.push(text); return; }
+  speak(text);
+}
+function previewVoice(){ initAudio(); speak(lines().start[0]); }
+
+/* ================= session state ================= */
+const PRIO = ['escape','phone','screen','sleepy','away','down','lookaway'];
+const COLORS = { f:'#3ef2b0', p:'#ff4d5e', a:'#8b6cff', l:'#ffb020', d:'#f08a3c', s:'#5b6b8f', x:'#ff5ca8', e:'#ff2d55', n:'#2a3140' };
+const CODE = { phone:'p', away:'a', lookaway:'l', down:'d', sleepy:'s', screen:'x', escape:'e', focus:'f' };
+const RGB = { cy:[76,201,240], ok:[62,242,176], gold:[255,200,87], warn:[255,176,32], bad:[255,77,94], pink:[255,92,168] };
+const CVAR = { cy:'#4cc9f0', ok:'#3ef2b0', gold:'#ffc857', warn:'#ffb020', bad:'#ff4d5e', pink:'#ff5ca8' };
+let S=null, M={has:false}, stream=null, ticker=null, wakeLock=null, pipWin=null;
+let lastNow=0, lastVT=-1, lastProcVT=-1, lastAdv=0, lastObj=0, lastUI=0, lastHand=0, HANDS=[];
+const cam=$('#cam'), ov=$('#ov'), ctx=ov.getContext('2d'), du=new DrawingUtils(ctx), mini=$('#mini');
+
+function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),6000); }
+function buildLegend(){ $('#legend').innerHTML = [['f','focus'],['p','phone'],['x','screen'],['a','away'],['l','lookaway'],['d','down'],['s','sleepy'],['e','escape']].map(([c,k])=>`<span><i style="background:${COLORS[c]}"></i>${t('ty_'+k)}</span>`).join(''); }
+
+async function startSession(){
+  initAudio();
+  const btn=$('#startBtn');
+  if(!settings.task.trim()){ toast(t('needGoal')); const ti=$('#task'); ti.classList.remove('shake'); void ti.offsetWidth; ti.classList.add('shake'); ti.focus(); ti.scrollIntoView({block:'center'}); return; }
+  btn.disabled=true;
+  // экран просим сразу — пока жив жест пользователя. С Sensei-сервером делиться экраном не нужно (кроме умной проверки Claude).
+  await pollAgent();   // свежие данные от Sensei-сервера: от них зависит, нужен ли «доступ к экрану» и строгий режим
+  const needShare = settings.screen && (!agentOK() || (settings.ai && settings.apiKey));
+  if(needShare && !scr.stream){ btn.textContent=t('screenAsk'); await requestScreen(); }
+  if(!TEST){
+  btn.textContent=t('loadingNN');
+  await modelsPromise;
+  if(!modelsReady){ btn.disabled=false; btn.textContent=t('start'); toast(t('nnFail')); return; }
+  btn.textContent=t('camOn');
+  try{ stream = await navigator.mediaDevices.getUserMedia({ video:{ width:{ideal:960}, height:{ideal:540}, frameRate:{ideal:30}, facingMode:'user' }, audio:false }); }
+  catch(e){ btn.disabled=false; btn.textContent=t('start'); toast(t('camFail')); return; }
+  cam.srcObject=stream; await cam.play().catch(()=>{});
+  }
+  const fit=()=>{ if(cam.videoWidth){ ov.width=cam.videoWidth; ov.height=cam.videoHeight; $('#vwrap').style.setProperty('--ar', (cam.videoWidth/cam.videoHeight).toFixed(4)); } };
+  fit(); cam.onloadedmetadata=fit;
+
+  S = { phase:'calib', paused:false, active:0, focused:0, cal:{n:0,yaw:[],pitch:[],eyeDown:[],blink:[],w:[],ny:[]}, base:{yaw:0,pitch:0,eyeDown:0,blink:0,w:0,ny:0},
+        hold:{escape:0,phone:0,screen:0,away:0,lookaway:0,down:0,sleepy:0}, cur:'focus', clear:0,
+        counts:{escape:0,phone:0,screen:0,away:0,lookaway:0,down:0,sleepy:0}, total:0, ep:null, curApp:'',
+        flow:0, best:0, score:100, tl:[], phoneHits:[], phoneBox:null, lastSay:0, lastNag:0, praised:new Set(), yawns:0, jawT:0, yawnFlag:false,
+        locked:false, blurAt:0, emergency:0, eye:null, nextEye:1200, closeT:0, slouchT:0, lastClose:-1e9, lastSlouch:-1e9, done:false,
+        learn:null, phoneTrack:null, parked:[], parking:false,
+        grants:[], denies:{}, chat:[], pass:null, chatting:false, lastBreakFocused:0,
+        gz:[], gl:{out:false}, glances:[], dips:[], blinks:[], blinkClosed:false, faceTime:0, appSwitches:[], lastApp:'',
+        thinking:false, writing:false, writeT:0, notWriteT:0, lastPaperOffer:-1e12, driftT:0, lastDrift:-1e12, drifts:0, driftUntil:0, driftF:{},
+        health:{nextWater:2700, nextMove:3000}, yawnTimes:[], eyesFreeUntil:0 };
+  $('#hudTask').textContent = settings.task || (L()==='ru'?'Сессия фокуса':'Focus session');
+  $('#coachName').textContent=P().name[L()]; $('#avatar').textContent=P().letter[L()];
+  $('#coachSay').textContent='…'; $('#calSub').textContent=t('calSub');
+  $('#calib').classList.add('on'); $('#paused').classList.remove('on'); $('#eyes').classList.remove('on'); $('#lockGate').classList.remove('on'); $('#learn').classList.remove('on');
+  $('#learnBtn').textContent = t(settings.phoneProfile ? 'relearnBtn' : 'learnBtn');
+  $('#pauseBtn').textContent=t('pause'); $('#sSound').value=settings.sound;
+  $('#notes').value = store.get('sensei.notes','');
+  $('#chatlog').innerHTML=''; updPhone();
+  S.strictOn = settings.strict && agentOK(); document.body.classList.toggle('strict', S.strictOn);
+  if(settings.strict && !S.strictOn) toast(t('strictNeedServer'));
+  buildLegend();
+  document.body.dataset.state='calib';
+  $('#setup').classList.remove('active'); $('#session').classList.add('active');
+  btn.disabled=false; btn.textContent=t('start'); window.scrollTo(0,0);
+
+  try{ wakeLock = await navigator.wakeLock?.request('screen'); }catch{}
+  if(!('documentPictureInPicture' in window)) $('#pipBtn').style.display='none';
+  setAmbient(settings.sound);
+  updScr();
+  lastNow=performance.now(); lastVT=-1; lastProcVT=-1; lastAdv=lastNow; lastObj=0; M={has:false};
+  startTicker();
+}
+
+// отрисовка поверх видео — отдельно, синхронно с экраном (60 к/с), не мешает нейросетям
+let rafId=0;
+function drawLoop(){ rafId=requestAnimationFrame(drawLoop); if(S && !document.hidden) drawOverlay(performance.now()); }
+function startTicker(){
+  stopTicker(); cancelAnimationFrame(rafId); drawLoop();
+  const blob=new Blob(['setInterval(()=>postMessage(0),66)'],{type:'text/javascript'}); // воркер не тормозит в фоне
+  ticker=new Worker(URL.createObjectURL(blob));
+  ticker.onmessage=()=>{ try{ step(); }catch(e){ console.error(e); } };
+}
+function stopTicker(){ if(ticker){ ticker.terminate(); ticker=null; } cancelAnimationFrame(rafId); }
+
+/* ================= main loop ================= */
+function step(){
+  const now=performance.now();
+  let dt=Math.min((now-lastNow)/1000,.5); lastNow=now;
+  if(!S) return;
+  if(now-agentLast>900) pollAgent(now);
+  if(!TEST && (cam.readyState<2 || !face)) return;
+
+  if(TEST || cam.currentTime!==lastVT){ lastVT=cam.currentTime; lastAdv=now; }
+  const stale = now-lastAdv>2000;
+  let newFrame=false;
+
+  if(TEST){ newFrame=true; M = SIM.M ? {has:true, ...SIM.M} : {has:false}; if(M.has && SIM.noise){ M.yaw+=(Math.random()-.5)*SIM.noise; M.pitch+=(Math.random()-.5)*SIM.noise; } if(M.has && S.phase==='run') trackGaze(now); }
+  else if(!stale && cam.currentTime!==lastProcVT){
+    lastProcVT=cam.currentTime; newFrame=true;
+    const fr=face.detectForVideo(cam,now);
+    if(fr.faceLandmarks.length){
+      const bs={}; for(const c of fr.faceBlendshapes[0].categories) bs[c.categoryName]=c.score;
+      const m=fr.facialTransformationMatrixes[0].data, lm=fr.faceLandmarks[0];
+      M={ has:true, lm,
+          yaw:Math.atan2(m[8],m[10])*57.2958,
+          pitch:-Math.asin(clamp(m[9],-1,1))*57.2958,
+          eyeDown:((bs.eyeLookDownLeft||0)+(bs.eyeLookDownRight||0))/2,
+          blink:((bs.eyeBlinkLeft||0)+(bs.eyeBlinkRight||0))/2,
+          jaw:bs.jawOpen||0,
+          w:Math.hypot(lm[454].x-lm[234].x, lm[454].y-lm[234].y),
+          ny:lm[1].y,
+          roll:Math.atan2(m[1],m[0])*57.2958,
+          fb:faceBox(lm) };
+      if(S.phase==='run') trackGaze(now);
+    } else M={ has:false };
+  }
+  if(!TEST && now-lastObj>120){ lastObj=now; runSlot(now); }
+  S.phoneHits=S.phoneHits.filter(h=>now-h.t<2000);
+
+  /* калибровка */
+  if(S.phase==='calib'){
+    if(newFrame && M.has){ const c=S.cal; c.n++; for(const k of ['yaw','pitch','eyeDown','blink','w','ny','roll']) (c[k]||(c[k]=[])).push(M[k]); }
+    const pr=clamp(S.cal.n/40,0,1);
+    $('#calRing').style.strokeDashoffset=326.7*(1-pr); $('#calPct').textContent=Math.round(pr*100)+'%';
+    $('#calSub').textContent = M.has ? t('calSub') : t('calNoFace');
+    if(pr>=1){
+      const c=S.cal; S.base={ yaw:median(c.yaw), pitch:median(c.pitch), eyeDown:median(c.eyeDown), blink:median(c.blink), w:median(c.w), ny:median(c.ny), roll:median(c.roll||[0]) };
+      S.phase='run'; $('#calib').classList.remove('on'); sfx.ready();
+      if(!settings.phoneProfile && !settings.learnSkipped) startLearn();
+      else beginWork();
+    }
+    return;
+  }
+
+  /* знакомство с телефоном: собираем цветовой «отпечаток» из рамки */
+  if(S.learn){
+    if(newFrame){ const W=cam.videoWidth, H=cam.videoHeight; S.learn.acc.push(colorHist(cam, W*.35, H*.12, W*.3, H*.66)); }
+    const pr=clamp(S.learn.acc.length/30,0,1); $('#learnBar').style.width=(pr*100)+'%';
+    if(pr>=1){
+      const n=S.learn.acc.length, avg=S.learn.acc[0].map((_,i)=>S.learn.acc.reduce((a,h)=>a+h[i],0)/n);
+      settings.phoneProfile=avg.map(x=>+x.toFixed(5)); saveSettings();
+      S.learn=null; $('#learn').classList.remove('on'); $('#learnBtn').textContent=t('relearnBtn');
+      sfx.good(); say(t('learnDone')); setTimeout(()=>{ if(S && !S.started) beginWork(); }, 2200);
+    }
+    return;
+  }
+
+  screenTick(now);
+  if(S.paused || S.parking){ return; }
+  if(S.pass){ passTick(dt); setUI(now,false); return; }
+  if(stale){ setUI(now,true); return; }
+
+  S.active+=dt;
+  const kk=[1.5,1,.6][settings.sens], aa=[1.25,1,.8][settings.sens];
+  const eyeBreak = !!S.eye;
+
+  /* сырые условия */
+  const scrApp = (settings.screen || S.strictOn) ? (scr.agentBad || scr.ocrBad || scr.aiBad) : null;
+  const dyaw = M.has ? M.yaw-S.base.yaw : 0, dpitch = M.has ? M.pitch-S.base.pitch : 0;
+  const downPose = M.has && (dpitch > 22*aa || (M.eyeDown-S.base.eyeDown) > .4);
+  phoneResolve(dt, dyaw, downPose);
+  // телефон лежит на месте (знаем от подключённого телефона) — камере нужно очень сильное доказательство
+  const phoneStill = PH.eff==='sleep' || (PH.eff==='here' && !PH.moving && (PH.pickupAgo==null || PH.pickupAgo>10));
+  const strongHits = S.phoneHits.filter(h=>h.sc>=.6).length;
+  const camPhone = phoneStill ? strongHits>=3 : ((S.phoneHits.reduce((a,h)=>a+h.w,0)>=1.8 && M.has) || strongHits>=2);
+  // «думает»: голова неподвижна и взгляд вверх (или чуть в сторону), или рука у подбородка — это не отвлечение.
+  // Неподвижный взгляд далеко в сторону (другой экран, ТВ, собеседник) — это уже не «думает».
+  // Просто смотреть в экран — это работа, а не «думает».
+  const thinking = M.has && !S.chatting && (gazeStill(now) && (dpitch < -8 || (Math.abs(dyaw) > 15 && Math.abs(dyaw) < 35)) || handAtChin());
+  // «пишет в тетради»: голова вниз и (рука внизу кадра, или телефон точно лежит на столе, или включён режим бумаги)
+  const writing = downPose && (settings.paper || phoneStill || handLow());
+  S.thinking = thinking;
+  S.writing = writing;
+  const raw = {
+    escape: lockBroken(now),
+    phone: camPhone || phoneLinkBusy(),
+    screen: !!scrApp,
+    away: !eyeBreak && !M.has,
+    lookaway: !eyeBreak && !S.chatting && M.has && Math.abs(dyaw) > 30*aa,
+    down: !eyeBreak && !S.chatting && downPose && !writing,
+    sleepy: !eyeBreak && performance.now()>S.eyesFreeUntil && M.has && M.blink>.5 && (M.blink-S.base.blink)>.3
+  };
+  if(scrApp) S.curApp = scrApp;
+  const thinkLimit = [45,30,18][settings.sens];
+  const need = { escape:.05, phone:1*kk, screen:.05, away:3*kk,
+    lookaway: thinking ? thinkLimit : (Math.abs(dyaw) > 55 ? 4*kk : 6*kk),
+    down:6*kk, sleepy:4*kk };
+  writingTick(dt, writing, now);
+  // экран и замок — точные сигналы: закрыл Telegram — тревога снимается сразу; камера — плавно (шумит)
+  for(const k in S.hold){ if(raw[k]) S.hold[k]+=dt; else S.hold[k] = (k==='screen'||k==='escape') ? 0 : Math.max(0,S.hold[k]-dt*2); }
+  let active=null; for(const k of PRIO){ if(S.hold[k]>=need[k]){ active=k; break; } }
+
+  if(active){ S.clear=0; if(S.cur!==active){ const was=S.cur; S.cur=active; onDistract(active,was,now); } }
+  else if(S.cur!=='focus'){ S.clear+=dt; if(S.clear>1) onRecover(now); }
+  $('#lockAlarm').classList.toggle('on', raw.escape && !$('#emModal').classList.contains('on'));
+
+
+  /* зевки */
+  if(M.has && M.jaw>.6){ S.jawT+=dt; if(S.jawT>1.2 && !S.yawnFlag){ S.yawns++; S.yawnTimes.push(S.active); S.yawnFlag=true; } } else { S.jawT=0; if(!M.has||M.jaw<.3) S.yawnFlag=false; }
+
+  /* забота: дистанция, осанка, глаза */
+  if(settings.care && M.has && S.base.w && !eyeBreak){
+    S.closeT = M.w > S.base.w*1.3 ? S.closeT+dt : 0;
+    S.slouchT = (M.ny - S.base.ny) > .12 ? S.slouchT+dt : 0;
+    if(S.closeT>6 && now-S.lastClose>180000 && S.cur==='focus'){ S.lastClose=now; sfx.soft(); say(care('close')); }
+    if(S.slouchT>8 && now-S.lastSlouch>180000 && S.cur==='focus'){ S.lastSlouch=now; sfx.soft(); say(care('posture')); }
+  }
+  if(settings.care && !eyeBreak) healthTick(dt, now);
+  driftTick(dt, now, dyaw, dpitch, thinking, writing);
+  if(settings.care && !S.eye && S.active>=S.nextEye && S.cur==='focus'){
+    S.eye={end:S.active+20}; S.nextEye+=1200; $('#eyes').classList.add('on'); sfx.soft(); say(care('eyes'));
+  }
+  if(S.eye){
+    const left=Math.max(0,S.eye.end-S.active);
+    $('#eyeN').textContent=Math.ceil(left); $('#eyeRing').style.strokeDashoffset=326.7*(1-left/20);
+    if(left<=0){ S.eye=null; S.eyesFreeUntil=performance.now()+15000; $('#eyes').classList.remove('on'); sfx.good(); say(care('eyesDone')); }
+  }
+
+  /* счёт, серия, поток */
+  if(S.cur==='focus'){
+    S.focused+=dt; S.flow+=dt; S.best=Math.max(S.best,S.flow);
+    S.score += (100-S.score)*Math.min(1, dt/60);   // восстанавливается за ~1–2 минуты работы
+    for(const m of [300,600,900,1500,2700,3600]) if(S.flow>=m && !S.praised.has(m)){
+      S.praised.add(m);
+      if(m===900){ sfx.good(); say(lines().flow); }
+      else if(now-S.lastSay>4000){ sfx.good(); say(pick(lines().praise).replace('{m}',m/60)); }
+    }
+  } else {
+    // падает плавно: телефон/соцсети быстрее, взгляд в сторону — медленнее; 10 с отвлечения ≈ −10…25 очков
+    S.score -= S.score*Math.min(1, dt/(['phone','screen','escape'].includes(S.cur) ? 35 : 70));
+    const gap = S.cur==='escape' ? 5000 : 12000;
+    if(now-S.lastSay>gap && now-S.lastNag>gap){
+      S.lastNag=now; (S.cur==='escape'?sfx.alarm:S.cur==='phone'?sfx.phone:S.cur==='screen'?sfx.screen:sfx.warn)();
+      say(S.cur==='escape' ? pick(lines().escape) : pick(lines().nag));
+    }
+  }
+
+  const sec=Math.floor(S.active), code=CODE[S.cur];
+  if(S.tl[sec]===undefined || code!=='f') S.tl[sec]=code;
+
+  if(settings.dur>0 && S.active>=settings.dur*60){ finish('time'); return; }
+  setUI(now,false);
+}
+
+/* --- телефон: детектор по всему кадру + увеличенный кроп вокруг каждой руки --- */
+let objTs=0, obj0Ts=0, tileIdx=0;
+const objNext = () => (objTs = Math.max(objTs+1, performance.now()));
+const obj0Next = () => (obj0Ts = Math.max(obj0Ts+1, performance.now()));
+const cropCv = document.createElement('canvas'); cropCv.width = cropCv.height = 448;
+function handBox(h, W, H){
+  let x0=1,y0=1,x1=0,y1=0; for(const p of h){ x0=Math.min(x0,p.x); y0=Math.min(y0,p.y); x1=Math.max(x1,p.x); y1=Math.max(y1,p.y); }
+  return { x0:x0*W, y0:y0*H, x1:x1*W, y1:y1*H };
+}
+function nearAnyHand(b, W, H){
+  for(const h of HANDS){ const hb=handBox(h,W,H), pad=Math.max(b.width,b.height)*.35;
+    if(hb.x1>b.originX-pad && hb.x0<b.originX+b.width+pad && hb.y1>b.originY-pad && hb.y0<b.originY+b.height+pad) return true; }
+  return false;
+}
+// Плавность: тяжёлые сети запускаем по очереди — за один такт (66 мс) только одна.
+// Порядок: руки → lite2 по всему кадру → lite0 по всему кадру → увеличенная часть кадра → область у руки.
+let slot=0;
+function runSlot(now){
+  const W=cam.videoWidth, H=cam.videoHeight; if(!W) return;
+  const s = slot++ % 5;
+  if(s===0){ if(hands){ try{ HANDS = hands.detectForVideo(cam, now).landmarks || []; }catch{ HANDS=[]; } } return; }
+  if(S.learn) return;
+  const cands=[];
+  const add = (dets, map, crop) => { for(const d of dets){ const c=d.categories[0]; cands.push({ box:map(d.boundingBox), cat:c.categoryName, sc:c.score, crop }); } };
+  const cropRun = (sx, sy, side, crop) => {
+    const k=side/cropCv.width;
+    cropCv.getContext('2d').drawImage(cam, sx, sy, side, side, 0, 0, cropCv.width, cropCv.height);
+    add(obj.detectForVideo(cropCv, objNext()).detections, b=>({originX:sx+b.originX*k, originY:sy+b.originY*k, width:b.width*k, height:b.height*k}), crop);
+  };
+  const tile = () => { const side=Math.min(W,H), xs=[0,(W-side)/2,W-side]; cropRun(xs[tileIdx++%3], 0, side, 'tile'); };
+  if(s===1) add(obj.detectForVideo(cam, objNext()).detections, b=>b, '');
+  else if(s===2){ if(obj0) add(obj0.detectForVideo(cam, obj0Next()).detections, b=>b, ''); else tile(); }
+  else if(s===3) tile();
+  else if(s===4){
+    const h=HANDS[tileIdx%Math.max(1,HANDS.length)];
+    if(h){ const hb=handBox(h,W,H), cx=(hb.x0+hb.x1)/2, cy=(hb.y0+hb.y1)/2;
+      const sd=clamp(Math.max(hb.x1-hb.x0, hb.y1-hb.y0)*2.8, H*.32, Math.min(W,H));
+      cropRun(clamp(cx-sd/2,0,W-sd), clamp(cy-sd*.62,0,H-sd), sd, 'hand'); }
+    else tile();
+  }
+  evalPhone(cands, now, W, H);
+}
+function evalPhone(cands, now, W, H){
+  // оценка: «телефон» считаем почти всегда; «пульт» — только крупный и вытянутый как телефон (мелкие «пульты» — шум)
+  let best=null;
+  for(const c of cands){
+    const b=c.box, ar=Math.max(b.width,b.height)/Math.max(1,Math.min(b.width,b.height));
+    const shape = ar>=1.2 && ar<=2.8, area = b.width*b.height/(W*H);
+    const nearHand = c.crop==='hand' || nearAnyHand(b,W,H);
+    let ev = 0;
+    if(c.cat==='cell phone') ev = c.sc + (shape && area>.05 ? .08 : 0) + (nearHand ? .08 : 0);
+    else if(shape && c.sc>=.36 && (area>=.03 || nearHand)) ev = c.sc*.9 + (nearHand ? .08 : 0);
+    // сверка с «отпечатком» твоего телефона: похож — увереннее, не похож — скорее ложная тревога
+    if(ev>=.12 && settings.phoneProfile){
+      const b2=c.box, sim=histSim(colorHist(cam, b2.originX+b2.width*.15, b2.originY+b2.height*.15, b2.width*.7, b2.height*.7), settings.phoneProfile);
+      c.sim=sim;
+      if(sim>=.72) ev+=.22; else if(sim>=.6) ev+=.08; else if(sim<.45 && ev<.55) ev-=.14;
+    }
+    const minEv = settings.phoneProfile ? .28 : .32;
+    if(ev>=minEv && (!best || ev>best.ev)) best={...c, ev};
+  }
+  if(best){
+    let wgt = best.ev>=.45 ? 1 : best.ev>=.34 ? .7 : .5;
+    // ложные срабатывания прыгают по кадру; настоящий телефон держится на месте
+    const prev=S.phoneTrack, steady = prev && now-prev.t<1500 && iou(prev.box,best.box)>=.15;
+    if(!steady && best.ev<.55) wgt*=.4;
+    S.phoneTrack={box:best.box, t:now};
+    S.phoneHits.push({t:now, sc:best.ev, w:wgt}); S.phoneBox={...best.box, t:now, sc:Math.min(.99,best.ev)};
+  }
+}
+function iou(a,b){
+  const x0=Math.max(a.originX,b.originX), y0=Math.max(a.originY,b.originY), x1=Math.min(a.originX+a.width,b.originX+b.width), y1=Math.min(a.originY+a.height,b.originY+b.height);
+  const inter=Math.max(0,x1-x0)*Math.max(0,y1-y0); return inter/(a.width*a.height+b.width*b.height-inter+1e-6);
+}
+// цветовая гистограмма HSV (8×3×3) участка кадра камеры
+const histCv=document.createElement('canvas'); histCv.width=histCv.height=40;
+const histCtx=histCv.getContext('2d',{willReadFrequently:true});
+function colorHist(src, x, y, w, h){
+  const W=cam.videoWidth, H=cam.videoHeight; x=clamp(x,0,W-2); y=clamp(y,0,H-2); w=clamp(w,2,W-x); h=clamp(h,2,H-y);
+  histCtx.drawImage(src,x,y,w,h,0,0,40,40);
+  const d=histCtx.getImageData(0,0,40,40).data, hist=new Array(72).fill(0);
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255, mx=Math.max(r,g,b), mn=Math.min(r,g,b), df=mx-mn;
+    let hu=0; if(df>0){ hu = mx===r ? ((g-b)/df)%6 : mx===g ? (b-r)/df+2 : (r-g)/df+4; hu=(hu*60+360)%360; }
+    const s=mx?df/mx:0, hb=Math.min(7,Math.floor(hu/45)), sb=Math.min(2,Math.floor(s*3)), vb=Math.min(2,Math.floor(mx*3));
+    hist[hb*9+sb*3+vb]++;
+  }
+  const n=d.length/4; return hist.map(v=>v/n);
+}
+const histSim=(a,b)=>a.reduce((s,v,i)=>s+Math.sqrt(v*(b[i]||0)),0); // коэффициент Бхаттачарьи, 1 = одинаково
+
+/* --- знакомство с телефоном и старт работы --- */
+function startLearn(){ if(!S) return; S.learn={acc:[]}; $('#learnBar').style.width='0'; $('#learn').classList.add('on'); sfx.soft(); say(t('learnH')+'. '+t('learnS')); }
+function beginWork(){
+  if(!S || S.started) return; S.started=true;
+  const fs=(settings.firstStep||'').trim();
+  say(pick(lines().start) + (fs ? ' ' + t('firstStepSay',{s:fs}) : ''));
+  if(settings.lock) $('#lockGate').classList.add('on');
+}
+$('#learnSkip').onclick=()=>{ if(!S) return; S.learn=null; $('#learn').classList.remove('on'); if(!settings.phoneProfile){ settings.learnSkipped=true; saveSettings(); } beginWork(); };
+$('#learnBtn').onclick=()=>{ if(S && S.phase==='run' && !S.learn) startLearn(); };
+
+
+/* ================= умная детекция: думает / пишет / здоровье / «уплывание» ================= */
+function faceBox(lm){ let x0=1,y0=1,x1=0,y1=0; for(let i=0;i<lm.length;i+=4){ const p=lm[i]; if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; } return {x0,y0,x1,y1}; }
+const std = a => { if(a.length<2) return 0; const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length); };
+// буфер взгляда за 30 с + «быстрые взгляды в сторону» (0.3–2 с) — главный признак, что человек начинает уплывать
+function trackGaze(now){
+  if(!S || !S.base) return;
+  const dy=M.yaw-S.base.yaw, dp=M.pitch-S.base.pitch;
+  S.gz.push({t:now, y:dy, p:dp}); while(S.gz.length && now-S.gz[0].t>30000) S.gz.shift();
+  const out = Math.abs(dy)>22 || dp>18 || dp<-18;
+  if(out && !S.gl.out){ S.gl={out:true, t:now, down:dp>18}; }
+  else if(!out && S.gl.out){ const d=now-S.gl.t; if(d>=300 && d<=2000){ S.glances.push(now); if(S.gl.down) S.dips.push(now); } S.gl={out:false}; }
+  // моргания (для здоровья глаз)
+  if(M.blink>.55 && !S.blinkClosed){ S.blinkClosed=true; S.blinks.push(now); }
+  else if(M.blink<.3) S.blinkClosed=false;
+  while(S.blinks.length && now-S.blinks[0]>120000) S.blinks.shift();
+  S.faceTime += 1;
+}
+function gazeStill(now){ const r=S.gz.filter(g=>now-g.t<3000); return r.length>12 && std(r.map(g=>g.y))<5 && std(r.map(g=>g.p))<5; }
+function handAtChin(){
+  if(!M.has || !M.fb || !HANDS.length) return false;
+  const fb=M.fb, h=fb.y1-fb.y0;
+  return HANDS.some(hd => hd.some(p => p.x>fb.x0-.03 && p.x<fb.x1+.03 && p.y>fb.y0+h*.55 && p.y<fb.y1+h*.25));
+}
+function handLow(){ return HANDS.some(hd => hd.reduce((a,p)=>a+p.y,0)/hd.length > .62); }
+function writingTick(dt, writing, now){
+  if(writing){ S.writeT+=dt; S.notWriteT=0; }
+  else { S.notWriteT+=dt; if(S.writeT>60 && S.notWriteT>4 && S.cur==='focus' && now-S.lastPaperOffer>600000){
+    S.lastPaperOffer=now; S.writeT=0;
+    if(settings.apiKey){ sfx.soft(); say(t('paperOffer')); addChat('assistant', t('paperOffer')); }
+  } if(S.notWriteT>20) S.writeT=0; }
+}
+// здоровье: моргание, шея, вода, движение, усталость
+function healthTick(dt, now){
+  if(S.cur!=='focus' || S.pass) return;
+  const H=S.health, cd=(k,ms)=>{ if(now-(H[k]||-1e12)<ms) return false; H[k]=now; return true; };
+  const tell=(k,v)=>{ sfx.soft(); say(fill(care(k),v||{})); if(k==='blink'||k==='tired'||k==='neck') S.eyesFreeUntil=now+40000; };
+  // моргание: у экрана человек моргает в 2–3 раза реже нормы (15–20/мин) → сухость глаз
+  if(S.active>180 && S.blinks.length>=0){
+    const span=Math.min(120, S.active), rate=S.blinks.length/(span/60);
+    if(span>=110 && rate<6 && cd('blink',600000)) return tell('blink',{n:Math.round(rate)});
+  }
+  // шея: голова долго наклонена вбок
+  if(M.has){ const roll=Math.abs(M.roll-(S.base.roll||0)); H.rollT = roll>14 ? (H.rollT||0)+dt : 0; if(H.rollT>25 && cd('neck',300000)) return tell('neck'); }
+  if(S.active>=H.nextWater){ H.nextWater+=2700; return tell('water'); }
+  if(S.active>=H.nextMove){ H.nextMove+=3000; return tell('move'); }
+  const recentYawns=S.yawnTimes.filter(x=>S.active-x<600).length;
+  if(recentYawns>=3 && cd('tired',900000)) return tell('tired');
+}
+// предсказание отвлечения: срабатывает только при ДВУХ явных признаках сразу, держащихся 6+ секунд
+function driftTick(dt, now, dyaw, dpitch, thinking, writing){
+  if(S.cur!=='focus' || S.pass || S.eye || thinking || writing || S.chatting){ S.driftT=0; return; }
+  const g=S.glances.filter(x=>now-x<20000).length, dips=S.dips.filter(x=>now-x<30000).length;
+  const sw=S.appSwitches.filter(x=>now-x<60000).length;
+  const idle = agentOK() && scr.agent.idle!=null ? scr.agent.idle : 0;
+  const f = { wander: g>=4, phoneDips: dips>=2 || (PH.conn && PH.eff==='here' && PH.pickupAgo!=null && PH.pickupAgo>4 && PH.pickupAgo<30), tabHop: sw>=4, idle: idle>40 && g>=2 };
+  S.driftF=f;
+  const score = (f.wander?1:0)+(f.phoneDips?1:0)+(f.tabHop?1:0)+(f.idle?.5:0);
+  S.driftT = score>=2 ? S.driftT+dt : 0;
+  if(S.driftT>6 && now-S.lastDrift>240000){
+    S.lastDrift=now; S.driftT=0; S.drifts++; S.driftUntil=now+4000;
+    sfx.tick();
+    const sub=$('#sub'); sub.innerHTML=`<small>${esc(P().name[L()])}</small>${esc(t('driftSay',{g:settings.task}))}`; sub.classList.add('show');
+    clearTimeout(subTimer); subTimer=setTimeout(()=>sub.classList.remove('show'), 3500);
+  }
+}
+
+function onDistract(type,was,now){
+  if(was==='focus'){ S.total++; S.ep={start:S.active,types:new Set()}; S.flow=0; S.score=Math.max(0,S.score-6); }
+  if(!S.ep) S.ep={start:S.active,types:new Set()};
+  if(!S.ep.types.has(type)){ S.ep.types.add(type); S.counts[type]++; }
+  const lvl=clamp(S.counts[type]-1,0,2);
+  (({escape:sfx.alarm, phone:sfx.phone, screen:sfx.screen})[type] || sfx.warn)();
+  say(lines()[type][lvl].replace('{app}', S.curApp || '?'));
+  S.lastNag=now;
+  if(type==='phone' || type==='escape'){ const f=$('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); const w=$('#vwrap'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+}
+function onRecover(now){
+  const dur = S.ep ? S.active-S.ep.start : 0;
+  S.cur='focus'; S.clear=0; S.ep=null;
+  for(const k in S.hold) S.hold[k]=0;
+  if(dur>4){ sfx.good(); say(pick(lines().back)); }
+}
+
+/* ================= screen watching ================= */
+const scr = { stream:null, track:null, ic:null, ocr:null, ocrLoading:false, ocrBusy:false, aiBusy:false, lastOcr:0, lastAi:0, ocrBad:null, aiBad:null, aiReason:'', aiErr:'', here:false, checked:false };
+const scrVid = $('#scrVid');
+async function requestScreen(){
+  try{
+    const st = await navigator.mediaDevices.getDisplayMedia({ video:{ displaySurface:'monitor', frameRate:{ideal:2,max:5} }, audio:false });
+    attachScreen(st); return true;
+  }catch(e){ console.warn(e); toast(t('screenDenied')); return false; }
+}
+function attachScreen(st){
+  scr.stream=st; scr.track=st.getVideoTracks()[0];
+  scr.ic = ('ImageCapture' in window) ? new ImageCapture(scr.track) : null;
+  scrVid.srcObject=st; scrVid.play().catch(()=>{});
+  scr.track.onended=()=>{ stopScreen(); if(S) say(care('screenLost')); };
+  scr.checked=false; scr.lastOcr=0; scr.lastAi=0;
+  const surf=scr.track.getSettings?.().displaySurface; scr.notMonitor = !!surf && surf!=='monitor';
+  if(scr.notMonitor) toast(t('scrNotMonitor'));
+  ensureOcr(); updScr();
+}
+function stopScreen(){
+  if(scr.stream) scr.stream.getTracks().forEach(x=>x.stop());
+  scr.stream=null; scr.track=null; scr.ic=null; scr.ocrBad=null; scr.aiBad=null; scrVid.srcObject=null; updScr();
+}
+function loadScript(src){ return new Promise((res,rej)=>{ if(window.Tesseract) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.append(s); }); }
+async function ensureOcr(){
+  if(scr.ocr || scr.ocrLoading) return; scr.ocrLoading=true;
+  try{ await loadScript(TESS_URL); scr.ocr = await Tesseract.createWorker(['eng','rus']); }
+  catch(e){ console.warn('OCR load failed', e); }
+  scr.ocrLoading=false;
+}
+// кадр экрана в полном разрешении (ImageCapture работает и когда вкладка в фоне)
+async function grabSrc(){
+  if(scr.ic){ try{ const b = await scr.ic.grabFrame(); if(b && b.width) return { src:b, w:b.width, h:b.height, close:()=>b.close() }; }catch{} }
+  if(scrVid.readyState<2 || !scrVid.videoWidth) return null;
+  return { src:scrVid, w:scrVid.videoWidth, h:scrVid.videoHeight, close:()=>{} };
+}
+async function grab(maxW){
+  const f=await grabSrc(); if(!f) return null;
+  const k=Math.min(1,maxW/f.w), c=document.createElement('canvas'); c.width=Math.round(f.w*k); c.height=Math.round(f.h*k);
+  c.getContext('2d').drawImage(f.src,0,0,c.width,c.height); f.close();
+  return c;
+}
+// вырезать полосу экрана и подготовить для OCR: серый, светлый текст на тёмном → инвертировать, поднять контраст
+function ocrStrip(src, sx, sy, sw, sh, outH){
+  const k=outH/sh, c=document.createElement('canvas'); c.width=Math.round(sw*k); c.height=Math.round(outH);
+  const g=c.getContext('2d', {willReadFrequently:true}); g.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
+  const id=g.getImageData(0,0,c.width,c.height), d=id.data; let sum=0;
+  for(let i=0;i<d.length;i+=4){ const y=.299*d[i]+.587*d[i+1]+.114*d[i+2]; d[i]=y; sum+=y; }
+  const inv = sum/(d.length/4) < 128;
+  for(let i=0;i<d.length;i+=4){ let y=inv?255-d[i]:d[i]; y=clamp((y-35)*1.35,0,255); d[i]=d[i+1]=d[i+2]=y; }
+  g.putImageData(id,0,0); return c;
+}
+// первое настоящее слово в строке меню macOS — это имя активного приложения
+function parseMenuApp(text){
+  const line=(text||'').split('\n').map(s=>s.trim()).find(s=>s.length>1) || '';
+  const tok=line.split(/\s+/).map(w=>w.replace(/^[^\p{L}]+|[^\p{L}\d.]+$/gu,'')).find(w=>/\p{L}{2,}/u.test(w));
+  return tok || '';
+}
+/* --- Sensei-сервер (sensei_server.py): точное активное приложение и адрес вкладки --- */
+let agentLast=0, agentBusy=false;
+const agentOK = () => !!(scr.agent && scr.agent.ok && Date.now()-scr.agentAt<4000);
+async function pollAgent(now){
+  if(agentBusy) return; agentBusy=true; agentLast=now ?? performance.now();
+  try{
+    const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),1500);
+    const r=await fetch('/api/state',{cache:'no-store',signal:ctl.signal}); clearTimeout(to);
+    if(r.ok){ const j=await r.json(); if(j.ok){ scr.agent=j; scr.agentAt=Date.now(); handlePhone(j.phone); } }
+  }catch{ /* сервер не запущен — работаем через OCR */ }
+  finally{ agentBusy=false; }
+}
+const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return ''; } };
+const agentOnSensei = a => a.browser && typeof a.url==='string' && a.url.startsWith(location.origin);
+const onSensei = () => agentOK() ? agentOnSensei(scr.agent) && document.visibilityState==='visible' : (document.hasFocus() && !document.hidden);
+function screenTick(now){
+  if(!(settings.screen || (S && S.strictOn)) || !S || S.phase!=='run' || S.paused) return;
+  if(agentOK()){
+    const a=scr.agent, here=agentOnSensei(a) || (/^sensei/i.test(a.app||''));
+    const key=(a.app||'')+'|'+hostOf(a.url||'');
+    if(S.lastApp && key!==S.lastApp && !here) S.appSwitches.push(now);
+    S.lastApp=key; while(S.appSwitches.length && now-S.appSwitches[0]>60000) S.appSwitches.shift();
+    scr.here=here; scr.app=a.app||''; scr.domains=hostOf(a.url||''); scr.urlErr=a.url_error||'';
+    const strictBad = strictTick(a, here, now);
+    scr.agentBad = here ? null : (strictBad || matchDistraction(scr.app, scr.domains));
+    if(here){ scr.ocrBad=null; scr.aiBad=null; }
+    scr.checked=true;
+    if(now-(scr.lastUpd||0)>500){ scr.lastUpd=now; updScr(); }
+    // умная проверка Claude по-прежнему идёт по скриншоту, если экран расшарен
+    if(!here && scr.stream && settings.ai && settings.apiKey && !scr.aiBusy && now-scr.lastAi>settings.aiEvery*1000){ scr.lastAi=now; runAi(); }
+    return;
+  }
+  scr.agentBad=null;
+  if(!scr.stream) return;
+  if(onSensei()){
+    if(!scr.here){ scr.here=true; scr.ocrBad=null; scr.aiBad=null; updScr(); }
+    return;
+  }
+  if(scr.here){ scr.here=false; scr.lastOcr=now-9000; scr.lastAi=now-settings.aiEvery*1000+8000; updScr(); }
+  if(scr.ocr && !scr.ocrBusy && now-scr.lastOcr>5000){ scr.lastOcr=now; runOcr(); }
+  if(settings.ai && settings.apiKey && !scr.aiBusy && now-scr.lastAi>settings.aiEvery*1000){ scr.lastAi=now; runAi(); }
+}
+function matchDistraction(app, domains){
+  for(const a of APPS){
+    if(!settings.apps.includes(a.id)) continue;
+    if(app && a.app.test(app)) return a.label;
+    if(domains && a.dom.test(domains)) return a.label;
+  }
+  const hay=(app+' '+domains).toLowerCase();
+  for(const w of settings.extra.split(',').map(x=>x.trim().toLowerCase()).filter(x=>x.length>=2)) if(hay.includes(w)) return w;
+  return null;
+}
+async function runOcr(){
+  scr.ocrBusy=true;
+  try{
+    const f=await grabSrc(); if(!f) return;
+    const { src, w, h } = f;
+    // 1) строка меню macOS (левая часть): имя активного приложения
+    const mbH = Math.max(14, Math.round(h*.034));
+    await scr.ocr.setParameters({ tessedit_pageseg_mode:'7' }); // одна строка — на пёстрых обоях это работает намного лучше
+    const r1 = await scr.ocr.recognize(ocrStrip(src, 0, 0, Math.round(w*.42), mbH, 64));
+    await scr.ocr.setParameters({ tessedit_pageseg_mode:'3' });
+    const app = parseMenuApp(r1.data.text);
+    // 2) если это браузер (или имя не прочиталось) — адресная строка: ищем только домены, не текст страницы
+    let domains = '';
+    if(!app || BROWSERS.test(app)){
+      const topH = Math.round(h*.17);
+      const r2 = await scr.ocr.recognize(ocrStrip(src, 0, 0, w, topH, Math.round(topH*(h<1200?1.7:1))));
+      domains = ((r2.data.text||'').toLowerCase().match(/[a-z0-9-]+(?:\.[a-z0-9-]+)+/g) || []).join(' ');
+    }
+    try{ const tc=document.createElement('canvas'); tc.width=320; tc.height=Math.round(320*h/w); tc.getContext('2d').drawImage(src,0,0,tc.width,tc.height); scr.thumb=tc.toDataURL('image/jpeg',.6); }catch{}
+    f.close();
+    if(onSensei()) return;
+    scr.app = app; scr.domains = domains;
+    scr.ocrBad = matchDistraction(app, domains); scr.checked = true; scr.lastCheck = Date.now();
+  }catch(e){ console.warn('OCR', e); }
+  finally{ scr.ocrBusy=false; updScr(); }
+}
+
+/* --- Claude vision check --- */
+let aiClient=null, AnthropicSDK=null;
+async function getClient(){
+  if(!AnthropicSDK) AnthropicSDK = (await import(SDK_URL)).default;
+  if(!aiClient) aiClient = new AnthropicSDK({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+  return aiClient;
+}
+const AI_SCHEMA = { type:'object', properties:{ on_task:{type:'boolean'}, app:{type:'string'}, reason:{type:'string'} }, required:['on_task','app','reason'], additionalProperties:false };
+const AI_SYSTEM = lang => `You monitor one person's computer screen during a focus session. They told you what they are working on. Decide whether the screenshot shows them working on that task.
+Count as on task: anything plausibly related — editors, documents, code, terminals, search results, reference pages, AI assistants, notes, and email or chats clearly about the task.
+Count as off task: social feeds, messenger chats unrelated to the task, entertainment video, games, shopping, news browsing, and anything else clearly unrelated.
+Judge only the frontmost, active window. Text that merely mentions an app or site (inside a chat, article, document or code) does not mean that app is open.
+When unsure, answer on task: a false alarm annoys the person more than a missed one.
+In "app", name the app or site in view (for example Telegram, YouTube, VS Code). Write "reason" as one short sentence in ${lang==='ru'?'Russian':'English'}.`;
+async function runAi(){
+  scr.aiBusy=true;
+  try{
+    const c=await grab(1280); if(!c) return;
+    const data=c.toDataURL('image/jpeg',.72).split(',')[1];
+    const client=await getClient();
+    const req = {
+      model: settings.aiModel, max_tokens: 2048,
+      output_config: { effort:'low', format:{ type:'json_schema', schema:AI_SCHEMA } },
+      system: AI_SYSTEM(L()),
+      messages: [{ role:'user', content:[
+        { type:'image', source:{ type:'base64', media_type:'image/jpeg', data } },
+        { type:'text', text:`The person's task: "${settings.task || '(not specified)'}"\nFrontmost app read from the macOS menu bar (may be empty or misread): ${scr.app || 'unknown'}\nDomains read from the browser address bar: ${scr.domains || 'none'}` }
+      ]}]
+    };
+    if(settings.aiModel!=='claude-haiku-5-5'){ req.betas=['server-side-fallback-2026-07-01']; req.fallbacks='default'; }
+    const r = await client.beta.messages.create(req);
+    if(r.stop_reason==='refusal' || onSensei()) return;
+    const tb = r.content.find(b=>b.type==='text'); if(!tb) return;
+    const j = JSON.parse(tb.text);
+    scr.aiBad = j.on_task ? null : (j.app || '?'); scr.aiReason = j.reason || ''; scr.aiErr=''; scr.checked=true;
+  }catch(e){
+    console.warn('Claude check failed', e);
+    scr.aiErr = (AnthropicSDK && e instanceof AnthropicSDK.AuthenticationError) ? t('aiKeyBad') : t('aiErr');
+  }finally{ scr.aiBusy=false; updScr(); }
+}
+function updScr(){
+  const st=$('#scrSt'), p=$('#scrP'), b=$('#scrBtn'); if(!st) return;
+  const agent = agentOK(), watching = (settings.screen || (S && S.strictOn)) && (agent || scr.stream);
+  const bad = scr.agentBad || scr.ocrBad || scr.aiBad;
+  let cls='', txt='', note='';
+  if(!watching){ txt=t('scrOff'); }
+  else if(scr.here){ cls='ok'; txt=t('scrHere'); }
+  else if(bad){ cls='bad'; txt=bad; note = scr.aiBad ? scr.aiReason : ''; }
+  else if(!scr.checked){ txt=t('scrWait'); }
+  else { cls='ok'; txt=t('scrOk'); note = settings.ai&&settings.apiKey ? scr.aiReason : ''; }
+  const mode = watching ? ' · ' + (agent ? t('scrAgent') : '') + (settings.ai&&settings.apiKey&&scr.stream ? (agent?' + ':'')+t('scrAi') : (agent?'':t('scrLocal'))) : '';
+  st.className='st '+cls; st.querySelector('span').textContent = txt + mode;
+  const seen = watching && !scr.here && scr.checked ? t('scrSeen',{app:scr.app||'?', dom:(scr.domains||'').split(' ').slice(0,2).join(' ')}) : '';
+  const warn = scr.notMonitor && scr.stream ? t('scrNotMonitor') : (agent && scr.urlErr==='automation_denied' ? t('urlDenied') : '');
+  p.textContent = [warn, scr.aiErr || note, seen].filter(Boolean).join(' · ');
+  const th=$('#scrThumb'); if(scr.thumb && scr.stream && !agent){ th.src=scr.thumb; th.classList.add('on'); } else th.classList.remove('on');
+  b.textContent = watching ? t('scrOff2') : t('scrOn');
+}
+$('#scrBtn').onclick = async () => {
+  if(settings.screen && (agentOK() || scr.stream)){ settings.screen=false; stopScreen(); }
+  else { settings.screen=true; if(!agentOK()) await requestScreen(); }
+  saveSettings(); updScr();
+};
+
+/* ================= lock mode ================= */
+function lockBroken(now){ return !!(S && S.locked && ((S.fsLock && !document.fullscreenElement) || document.hidden || (S.blurAt && now-S.blurAt>1500))); }
+async function enterLock(){
+  if(!S) return;
+  // полный экран; если браузер не даёт — замок работает в окне (следим за уходом в другие окна)
+  let fs=false;
+  try{
+    fs = await Promise.race([ document.documentElement.requestFullscreen({navigationUI:'hide'}).then(()=>true,()=>false), new Promise(r=>setTimeout(()=>r(false),2500)) ]);
+  }catch{ fs=false; }
+  fs = fs && !!document.fullscreenElement;
+  if(!fs) toast(t('fsFail'));
+  else { try{ await navigator.keyboard?.lock?.(['Escape']); }catch{} }
+  S.fsLock=fs; S.locked=true; S.blurAt=0; document.body.classList.add('locked');
+  $('#lockGate').classList.remove('on'); $('#lockAlarm').classList.remove('on');
+  if(pipWin){ try{pipWin.close()}catch{} }
+  window.scrollTo(0,0); say(care('lockIn')); setTimeout(()=>$('#notes').focus(),300);
+}
+function exitLock(emergency){
+  if(!S) return;
+  S.locked=false; document.body.classList.remove('locked');
+  try{ navigator.keyboard?.unlock?.(); }catch{}
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  $('#lockAlarm').classList.remove('on'); $('#emModal').classList.remove('on');
+  if(S.strictOn && (emergency || S.exitStrictReq)){ S.strictOn=false; document.body.classList.remove('strict'); }
+  if(emergency){ S.emergency++; say(S.exitStrictReq ? t('strictOff') : care('emergency')); }
+  S.exitStrictReq=false;
+}
+addEventListener('blur', ()=>{ if(S && S.locked) S.blurAt=performance.now(); });
+addEventListener('focus', ()=>{ if(S) S.blurAt=0; });
+$('#gateBtn').onclick = enterLock;
+$('#gateSkip').onclick = () => $('#lockGate').classList.remove('on');
+$('#lockBtn').onclick = () => { if(S && S.phase==='run') enterLock(); };
+$('#reLock').onclick = enterLock;
+const openEm = () => { $('#emModal').classList.add('on'); $('#lockAlarm').classList.remove('on'); };
+$('#emBtn').onclick = openEm; $('#alarmEm').onclick = openEm;
+$('#emCancel').onclick = () => { $('#emModal').classList.remove('on'); if(S&&S.locked&&!document.fullscreenElement) enterLock(); };
+(function holdToConfirm(){
+  const b=$('#holdBtn'), bar=b.querySelector('i'); let start=0, raf=0;
+  const reset=()=>{ start=0; cancelAnimationFrame(raf); bar.style.width='0'; };
+  const tick=()=>{ const p=Math.min(1,(performance.now()-start)/3000); bar.style.width=(p*100)+'%'; if(p>=1){ reset(); exitLock(true); } else raf=requestAnimationFrame(tick); };
+  b.addEventListener('pointerdown',e=>{ e.preventDefault(); start=performance.now(); raf=requestAnimationFrame(tick); });
+  for(const ev of ['pointerup','pointerleave','pointercancel']) b.addEventListener(ev,reset);
+})();
+let notesT=0;
+$('#notes').oninput = e => { clearTimeout(notesT); notesT=setTimeout(()=>store.set('sensei.notes', e.target.value), 400); };
+$('#notesDl').onclick = () => { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([$('#notes').value],{type:'text/plain;charset=utf-8'})); a.download='sensei-notes.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+
+/* ================= UI ================= */
+function stateColorName(){ if(!S || S.phase==='calib' || S.eye) return 'cy'; if(S.cur==='phone'||S.cur==='escape') return 'bad'; if(S.cur==='screen') return 'pink'; if(S.cur!=='focus') return 'warn'; return S.flow>=900?'gold':'ok'; }
+function setUI(now,stale){
+  if(now-lastUI<180) return; lastUI=now;
+  const cn=stateColorName();
+  document.body.dataset.state = S.paused ? 'idle' : (S.eye||S.pass) ? 'eyes' : (S.cur==='focus' && now<S.driftUntil) ? 'drift' : (S.cur==='phone'||S.cur==='escape') ? 'phone' : S.cur!=='focus' ? 'warn' : S.flow>=900 ? 'flow' : 'focus';
+  const left = settings.dur>0 ? settings.dur*60-S.active : S.active, timeStr=fmt(left);
+  $('#hudTimer').textContent=timeStr; $('#mTime').textContent=timeStr;
+  const stTxt = stale ? t('st_nosignal') : S.paused ? t('st_paused') : S.pass ? t('st_pass',{k:t('pk_'+S.pass.kind).toUpperCase(), t:fmt(S.pass.dur-S.pass.t)}) : S.eye ? t('st_eyes') : (S.cur==='focus' && S.writing) ? t('st_write') : (S.cur==='focus' && S.thinking) ? t('st_think') : t('st_'+S.cur);
+  pushSession(now, stTxt, timeStr);
+  $('#schipT').textContent=stTxt; $('#mState').textContent=stTxt;
+  $('#schip').style.setProperty('--c',CVAR[cn]); mini.style.setProperty('--c',CVAR[cn]);
+  $('#score').textContent=Math.round(S.score);
+  const ring=$('#ring'); ring.style.strokeDashoffset=326.7*(1-S.score/100); ring.style.stroke=S.score>70?CVAR.ok:S.score>40?CVAR.warn:CVAR.bad;
+  const alertTxt = S.cur==='focus' ? '' : t('al_'+S.cur,{app:(S.curApp||'').toUpperCase()});
+  const tmpl = S.cur==='focus' ? '' : t('al_'+S.cur);
+  $('#scoreT').textContent = S.cur==='focus' ? (S.flow>=900?t('flowWord'):t('allClear')) : (tmpl.charAt(0)+tmpl.slice(1).toLowerCase()).replace('{app}', S.curApp||'');
+  $('#mBar').style.width=S.score+'%';
+  $('#flowLv').textContent = S.flow>=900?t('lvFlow'):S.flow>=300?t('lvFocus'):t('lvRamp'); $('#flowLv').style.color = S.flow>=900?CVAR.gold:'';
+  $('#flowT').textContent=fmt(S.flow);
+  $('#flowBar').style.width=clamp(S.flow/900*100,0,100)+'%';
+  $('#flowHint').textContent = S.flow>=900 ? t('inFlow') : t('flowLeft',{t:fmt(900-S.flow)});
+  $('#cDist').textContent=S.total; $('#cPhone').textContent=S.counts.phone; $('#cBest').textContent=fmt(S.best);
+  $('#cPct').textContent = (S.active>1?Math.round(S.focused/S.active*100):100)+'%';
+  const ab=$('#alertb');
+  if(S.cur!=='focus' && !S.paused && !S.pass){ ab.textContent=alertTxt; ab.className='alertb show'+(S.cur==='phone'||S.cur==='escape'?'':S.cur==='screen'?' scr':' warn'); } else ab.classList.remove('show');
+  document.title = `${timeStr} · ${stTxt} — Sensei`;
+  if(now-(setUI.tl||0)>1000){ setUI.tl=now; drawTimeline($('#tl')); }
+  const db=$('#dbgbox');
+  if(M.has && db.classList.contains('on')) db.textContent = `yaw ${(M.yaw-S.base.yaw).toFixed(0)}°  pitch ${(M.pitch-S.base.pitch).toFixed(0)}°\neyeDown ${(M.eyeDown-S.base.eyeDown).toFixed(2)}  blink ${M.blink.toFixed(2)}\nclose ${(M.w/S.base.w).toFixed(2)}  slouch ${(M.ny-S.base.ny).toFixed(2)}\nphone ${S.phoneHits.length}  hold ${Object.entries(S.hold).map(([k,v])=>k.slice(0,2)+v.toFixed(1)).join(' ')}`;
+}
+function drawTimeline(cv, st=S){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight; if(!w||!st) return;
+  if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  const total = settings.dur>0 && !st.done ? settings.dur*60 : Math.max(60, Math.ceil(st.active)), bw = w/total;
+  c.fillStyle='rgba(255,255,255,.05)'; c.beginPath(); c.roundRect(0,0,w,h,8); c.fill();
+  c.save(); c.beginPath(); c.roundRect(0,0,w,h,8); c.clip();
+  for(let i=0;i<st.tl.length;i++){ const k=st.tl[i]; if(!k) continue; c.fillStyle=COLORS[k]; c.fillRect(i*bw,0,Math.ceil(bw)+.5,h); }
+  c.restore();
+}
+const rgba=(a,al)=>`rgba(${a[0]},${a[1]},${a[2]},${al})`;
+function bracket(c,x,y,w,h,l){ c.beginPath(); for(const [px,py,dx,dy] of [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]]){ c.moveTo(px,py+dy*l); c.lineTo(px,py); c.lineTo(px+dx*l,py); } c.stroke(); }
+function drawOverlay(now){
+  const W=ov.width, H=ov.height; if(!W) return;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
+  const col=RGB[stateColorName()];
+  if(M.has && M.lm){
+    ctx.save(); ctx.setTransform(-1,0,0,1,W,0);
+    const lw=Math.max(1,W/900);
+    // лёгкая сетка: контуры вместо 2600 треугольников — рисуется в 10 раз быстрее
+    du.drawConnectors(M.lm, FaceLandmarker.FACE_LANDMARKS_CONTOURS,{color:rgba(col,.35),lineWidth:lw});
+    du.drawConnectors(M.lm, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,{color:rgba(col,.95),lineWidth:lw*2.2});
+    du.drawConnectors(M.lm, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,{color:rgba(col,.9),lineWidth:lw*1.6});
+    du.drawConnectors(M.lm, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,{color:rgba(col,.9),lineWidth:lw*1.6});
+    du.drawConnectors(M.lm, FaceLandmarker.FACE_LANDMARKS_LIPS,{color:rgba(col,.7),lineWidth:lw*1.4});
+    ctx.restore();
+  }
+  if(HANDS.length){
+    ctx.save(); ctx.setTransform(-1,0,0,1,W,0);
+    for(const h of HANDS) du.drawConnectors(h, HandLandmarker.HAND_CONNECTIONS,{color:rgba(col,.55),lineWidth:Math.max(1.5,W/600)});
+    ctx.restore();
+  }
+  const b=S&&S.phoneBox;
+  if(b && now-b.t<700){
+    const a=1-(now-b.t)/700, x=W-b.originX-b.width, y=b.originY, w=b.width, h=b.height, red=RGB.bad;
+    ctx.save(); ctx.shadowColor=rgba(red,.9); ctx.shadowBlur=24; ctx.strokeStyle=rgba(red,a); ctx.lineWidth=Math.max(3,W/320);
+    bracket(ctx,x,y,w,h,Math.min(w,h)*.28);
+    ctx.fillStyle=rgba(red,.12*a); ctx.fillRect(x,y,w,h);
+    ctx.shadowBlur=0; ctx.fillStyle=rgba(red,a); const fs=Math.max(14,W/50); ctx.font=`700 ${fs}px "JetBrains Mono",monospace`;
+    const label=`${t('st_phone')} ${Math.round(b.sc*100)}%`, tw=ctx.measureText(label).width;
+    ctx.fillRect(x,y-fs*1.5,tw+fs,fs*1.5); ctx.fillStyle='#fff'; ctx.fillText(label,x+fs/2,y-fs*.42);
+    ctx.restore();
+  }
+}
+
+/* ================= учитель: разговор и разрешения ================= */
+const TT = {
+ru:{ social:'Соцсети — только если заработаешь. Объясни мне за 60 секунд, что ты сделал, отвечу на один вопрос — и 10 минут твои.', allowToilet:'Иди. {mm} — и сразу назад.', allowToiletAgain:'Ты был {agoTxt}. Ладно, {mm}, но не злоупотребляй.',
+  denyToilet:'Ты был {agoTxt}. Потерпи ещё {waitTxt}.', lastToilet:'Раз так срочно — {mm}. Но это последний раз в этот час.',
+  allowPills:'Здоровье важнее всего. {mm}: выпей и возвращайся.', allowWater:'Попей, {mm}. И поставь воду на стол, чтобы больше не вставать.',
+  denyWater:'Ты пил {agoTxt}. Поставь бутылку рядом и работай.', allowCall:'Срочный звонок — отвечай. {mm}, телефон сейчас не считается.',
+  askCall:'Это срочно? Если нет — перезвонишь после сессии{remTxt}. Если срочно, скажи «срочно».', allowCall2:'Ладно, верю. {mm} на звонок.',
+  denyFoodEnd:'До конца сессии {rem} мин. Поешь после.', denyFoodEarly:'Сначала поработай: до заслуженного перерыва ещё {waitTxt}.',
+  allowFood:'Хорошо, {mm} на перекус. Без телефона.', denyFoodTwice:'Ты уже ел в этой сессии. Потерпи до конца.',
+  allowBreak:'Заслужил. {mm} отдыха — без телефона и соцсетей.', denyBreak:'До перерыва ещё {waitTxt} фокуса. Держись.',
+  allowStretch:'Разомнись, {mm}а. Встань, потянись, подыши.', denyStretch:'Ты разминался {agoTxt}. Работаем.',
+  end:'Хочешь закончить? Есть кнопка «Завершить сессию». Но цель «{g}» ещё ждёт — подумай.', goal:'Твоя цель: «{g}».', goalStep:' Первый шаг: «{s}».',
+  stats:'В фокусе {pct}%, работаешь {min} мин, отвлечений: {n}.', rem:' Осталось {rem} мин.', remIn:' через {rem} мин',
+  hello:'Я здесь. Работай над «{g}», а если что-то нужно — спрашивай.', other:'Я здесь, чтобы ты дошёл до цели «{g}». Если что-то нужно, спроси разрешения, или возвращайся к работе.',
+  back:['С возвращением. Продолжаем.','Вернулся — молодец. Работаем.'], timeUp:'Время паузы вышло. Возвращайся к работе.', stayed:'Вижу, ты остался на месте — значит, продолжаем работу.',
+  phHello:'Телефон подключён. Теперь я вижу и его.', phCallMsg:'Мне звонят, срочно нужно ответить', forgiveCall:'Звонок — понимаю. Не засчитываю.',
+  forgiveNo:'Что-то слишком много «звонков» сегодня. Засчитываю.', lockedTip:'Понял, ты просто выключил экран. Не засчитываю.',
+  honest:'Спасибо за честность. Положи телефон и вернись к цели.', thinking:'…' },
+en:{ social:'Social media only if you earn it. Explain to me in 60 seconds what you did, answer one question — and 10 minutes are yours.', allowToilet:'Go. {mm} — then straight back.', allowToiletAgain:'You went {agoTxt}. Fine, {mm}, but do not abuse it.',
+  denyToilet:'You went {agoTxt}. Hold on for {waitTxt} more.', lastToilet:'If it is that urgent — {mm}. But that is the last time this hour.',
+  allowPills:'Health comes first. {mm}: take it and come back.', allowWater:'Have a drink, {mm}. And keep water on your desk so you do not have to get up.',
+  denyWater:'You drank {agoTxt}. Keep a bottle nearby and work.', allowCall:'Urgent call — answer it. {mm}, the phone does not count right now.',
+  askCall:'Is it urgent? If not, call back after the session{remTxt}. If it is, say “urgent”.', allowCall2:'Okay, I believe you. {mm} for the call.',
+  denyFoodEnd:'{rem} min left in the session. Eat afterwards.', denyFoodEarly:'Work first: {waitTxt} more until you have earned a break.',
+  allowFood:'Fine, {mm} for a snack. No phone.', denyFoodTwice:'You already ate this session. Hold on until the end.',
+  allowBreak:'You earned it. {mm} of rest — no phone, no social media.', denyBreak:'{waitTxt} more of focus until a break. Hold on.',
+  allowStretch:'Stretch, {mm}. Stand up, reach up, breathe.', denyStretch:'You stretched {agoTxt}. Back to work.',
+  end:'Want to finish? There is an “End session” button. But your goal “{g}” is still waiting — think about it.', goal:'Your goal: “{g}”.', goalStep:' First step: “{s}”.',
+  stats:'You are {pct}% focused, working for {min} min, distractions: {n}.', rem:' {rem} min left.', remIn:' in {rem} min',
+  hello:'I am here. Work on “{g}”, and if you need something, ask.', other:'I am here to get you to your goal “{g}”. Ask permission if you need something, or get back to work.',
+  back:['Welcome back. Let us continue.','You are back — good. Work.'], timeUp:'Your pause is over. Back to work.', stayed:'I see you stayed put — so we keep working.',
+  phHello:'Phone connected. Now I can see it too.', phCallMsg:'Someone is calling me, I need to answer urgently', forgiveCall:'A call — I understand. Not counted.',
+  forgiveNo:'Too many “calls” today. Counted.', lockedTip:'Got it, you just switched the screen off. Not counted.',
+  honest:'Thanks for being honest. Put the phone down and get back to your goal.', thinking:'…' }
+};
+const OPEN = {
+  sensei:{ ru:{a:['Разрешаю.','Хорошо.'], d:['Нет.','Не сейчас.']}, en:{a:['Granted.','Very well.'], d:['No.','Not now.']} },
+  friend:{ ru:{a:['Конечно!','Давай!'], d:['Давай чуть позже, ладно?','Лучше не сейчас.']}, en:{a:['Of course!','Sure!'], d:['Maybe a bit later, okay?','Better not right now.']} },
+  coach:{ ru:{a:['Давай, пулей!','Ок, быстро!'], d:['Нет, чемпион!','Не сейчас, держим темп!']}, en:{a:['Go, quick!','Okay, fast!'], d:['No, champ!','Not now, keep the pace!']} }
+};
+const INTENTS = [
+  {k:'pills', rx:/таблет|лекарств|витамин|ингалят|pill|medic|vitamin|inhaler/i},
+  {k:'toilet', rx:/туал|пописа|покака|уборн|toilet|bathroom|restroom|\bpee\b/i},
+  {k:'call', rx:/звон|позвон|трубк|ответить на|call\b|calling|phone call/i},
+  {k:'social', rx:/инст|соцсет|тикток|ютуб|телег|(^|[^а-яё])вк(?![а-яё])|reels|рилс|шортс|телефон|мобильн|смартфон|youtube|instagram|tiktok|social|twitter|my phone|\bphone\b/i},
+  {k:'food', rx:/поесть|покушать|кушать|есть хочу|хочу есть|перекус|голод|обед|ужин|завтрак|\beat\b|snack|hungry|lunch|dinner|breakfast/i},
+  {k:'water', rx:/вод[уыае]|попить|пить|чай|кофе|water|drink|tea|coffee/i},
+  {k:'break', rx:/перерыв|отдох|устал|передохн|\bbreak\b|\brest\b|tired/i},
+  {k:'stretch', rx:/размя|потянут|встать|пройтись|stretch|stand up/i},
+  {k:'end', rx:/законч|заверш|хватит|остановить|stop the session|finish|quit/i},
+  {k:'goal', rx:/цел[ьи]|задач|что я делаю|\bgoal\b|my task/i},
+  {k:'stats', rx:/как я|сколько|прогресс|статист|how am i|progress|stats|how long/i},
+  {k:'hello', rx:/^(привет|здравств|hi\b|hello|hey)/i}
+];
+// «1 минута», «3 минуты», «5 минут» / «1 minute», «5 minutes»
+const minWord = n => { if(L()!=='ru') return n+(n===1?' minute':' minutes'); const a=n%10, b=n%100; return n+' '+(a===1&&b!==11?'минута':a>=2&&a<=4&&(b<12||b>14)?'минуты':'минут'); };
+const fill = (s, v={}) => Object.entries(v).reduce((a,[k,x])=>a.split('{'+k+'}').join(x), s);
+const TX = () => TT[L()];
+function brain(text, src){
+  const tx=TX(), op=OPEN[settings.coach][L()], g=settings.task||'—';
+  const rem = settings.dur>0 ? Math.max(0,Math.ceil((settings.dur*60-S.active)/60)) : null;
+  const k=(INTENTS.find(i=>i.rx.test(text))||{k:'other'}).k;
+  const ago = kind => { const a=S.grants.filter(x=>x.kind===kind).pop(); return a ? Math.round((S.active-a.at)/60) : Infinity; };
+  const deniedRecently = kind => S.denies[kind]!=null && S.active-S.denies[kind] < 180;
+  const urgent = /срочн|важн|экстрен|мам|пап|врач|больниц|urgent|emergenc|important|mom|dad|doctor|hospital/i.test(text) || src==='phone';
+  const focusedSince = (S.focused-(S.lastBreakFocused||0))/60;
+  // «только что» / «5 минут назад», «ещё 3 минуты»
+  const words = v => { const o={...v}; if(v.ago!=null) o.agoTxt = v.ago<1 ? (L()==='ru'?'только что':'just now') : minWord(v.ago)+(L()==='ru'?' назад':' ago'); if(v.wait!=null) o.waitTxt=minWord(v.wait); return o; };
+  const A = (kind,m,tpl,v={}) => ({decision:'allow', kind, minutes:m, reply:pick(op.a)+' '+fill(tpl,{m,mm:minWord(m),...words(v)})});
+  const D = (kind,tpl,v={}) => { S.denies[kind]=S.active; return {decision:'deny', kind, minutes:0, reply:pick(op.d)+' '+fill(tpl,words(v))}; };
+  const N = tpl => ({decision:'none', kind:'none', minutes:0, reply:tpl});
+  switch(k){
+    case 'social': setTimeout(()=>openFeyn('break'), 1800); return N(tx.social);
+    case 'pills': return A('pills',2,tx.allowPills);
+    case 'toilet': {
+      const a=ago('toilet'), hour=S.grants.filter(x=>x.kind==='toilet' && S.active-x.at<3600).length;
+      if(a>=40) return A('toilet',5,tx.allowToilet);
+      if(hour>=3) return D('toilet',tx.denyToilet,{ago:a,wait:Math.max(1,40-a)});
+      if(a>=20) return A('toilet',3,tx.allowToiletAgain,{ago:a});
+      if(deniedRecently('toilet')) return A('toilet',3,tx.lastToilet);
+      return D('toilet',tx.denyToilet,{ago:a,wait:Math.max(1,20-a)});
+    }
+    case 'water': { const a=ago('water'); return a>=15 ? A('water',2,tx.allowWater) : D('water',tx.denyWater,{ago:a}); }
+    case 'call':
+      if(urgent) return A('call',5,tx.allowCall);
+      if(deniedRecently('call')) return A('call',3,tx.allowCall2);
+      return D('call',tx.askCall,{remTxt: rem!=null ? fill(tx.remIn,{rem}) : ''});
+    case 'food':
+      if(S.grants.some(x=>x.kind==='food')) return D('food',tx.denyFoodTwice);
+      if(rem!=null && rem<=20) return D('food',tx.denyFoodEnd,{rem});
+      if(focusedSince<25) return D('food',tx.denyFoodEarly,{wait:Math.ceil(25-focusedSince)});
+      return A('food',10,tx.allowFood);
+    case 'break':
+      if(focusedSince>=25) return A('break',5,tx.allowBreak);
+      return D('break',tx.denyBreak,{wait:Math.ceil(25-focusedSince)});
+    case 'stretch': { const a=ago('stretch'); return a>=10 ? A('stretch',1,tx.allowStretch) : D('stretch',tx.denyStretch,{ago:a}); }
+    case 'end': return N(fill(tx.end,{g}));
+    case 'goal': return N(fill(tx.goal,{g}) + (settings.firstStep ? fill(tx.goalStep,{s:settings.firstStep}) : ''));
+    case 'stats': return N(fill(tx.stats,{pct:S.active>1?Math.round(S.focused/S.active*100):100, min:Math.round(S.active/60), n:S.total}) + (rem!=null?fill(tx.rem,{rem}):''));
+    case 'hello': return N(fill(tx.hello,{g}));
+    default: return N(fill(tx.other,{g}));
+  }
+}
+const TEACH_SCHEMA = { type:'object', additionalProperties:false, required:['reply','decision','kind','minutes'],
+  properties:{ reply:{type:'string'}, decision:{type:'string', enum:['allow','deny','none']},
+    kind:{type:'string', enum:['toilet','water','pills','call','food','break','stretch','other','none']}, minutes:{type:'integer'} } };
+function teacherSystem(){
+  const p=P();
+  return `You are ${p.name.en}, a ${p.tag.en.toLowerCase()} focus teacher. Through the webcam you watch one student working towards a session goal. Stay in character.
+Reply in ${L()==='ru'?'Russian':'English'}, in 1–2 short sentences: your words are spoken aloud.
+When the student asks permission for something, decide like a fair, experienced teacher, using the session state:
+- Health (medicine, feeling unwell) is always allowed.
+- Toilet and water are allowed, but not too often: look at how long ago they last went. Refuse or question repeated requests a few minutes apart; give in to a second, urgent-sounding request.
+- Breaks and food only after real focused work (about 25 minutes), and not near the end of the session.
+- Urgent calls are allowed; casual calls wait until after the session.
+- Set "minutes" to the length of the pause you allow (1–10), or 0 when you refuse or it is not a request.
+If the message is not a request, answer helpfully and steer the student back to the goal. Never invent numbers that are not in the session state.`;
+}
+async function aiTeacher(text){
+  const client=await getClient();
+  const ctx = { goal:settings.task, first_step:settings.firstStep||null, minutes_worked:Math.round(S.active/60),
+    minutes_left: settings.dur>0 ? Math.max(0,Math.round((settings.dur*60-S.active)/60)) : null,
+    focus_percent: S.active>1 ? Math.round(S.focused/S.active*100) : 100,
+    focused_minutes_since_last_break: Math.round((S.focused-(S.lastBreakFocused||0))/60),
+    distractions: S.counts, permissions_given: S.grants.map(x=>({kind:x.kind, minutes:x.min, minutes_ago:Math.round((S.active-x.at)/60)})),
+    recent_refusals: Object.entries(S.denies).map(([k,v])=>({kind:k, minutes_ago:Math.round((S.active-v)/60)})) };
+  const hist=[]; for(const m of S.chat.slice(-9,-1)){ const role=m.role==='user'?'user':'assistant'; if(hist.length && hist[hist.length-1].role===role) hist[hist.length-1].content+='\n'+m.text; else hist.push({role, content:m.text}); }
+  while(hist.length && hist[0].role!=='user') hist.shift();
+  if(hist.length && hist[hist.length-1].role==='user') hist.pop();
+  const req = { model:settings.aiModel, max_tokens:1024, system:teacherSystem(),
+    output_config:{ effort:'low', format:{ type:'json_schema', schema:TEACH_SCHEMA } },
+    messages:[...hist, { role:'user', content:`Session state: ${JSON.stringify(ctx)}\n\nStudent: ${text}` }] };
+  if(settings.aiModel!=='claude-haiku-5-5'){ req.betas=['server-side-fallback-2026-07-01']; req.fallbacks='default'; }
+  const r = await client.beta.messages.create(req);
+  if(r.stop_reason==='refusal') return null;
+  const tb=r.content.find(b=>b.type==='text'); if(!tb) return null;
+  const j=JSON.parse(tb.text); j.minutes=clamp(Math.round(j.minutes||0),0,10);
+  if(j.decision==='deny') S.denies[j.kind]=S.active;
+  return j;
+}
+function addChat(role, text, cls=''){
+  S.chat.push({role, text});
+  const box=$('#chatlog'), el=document.createElement('div'); el.className=(role==='user'?'u':'')+(cls?' '+cls:''); el.textContent=text;
+  box.append(el); while(box.children.length>8) box.firstChild.remove(); box.scrollTop=box.scrollHeight;
+}
+async function teacherAsk(text, src='mac'){
+  if(!S || S.phase!=='run' || !text.trim()) return;
+  addChat('user', (src==='phone'?'📱 ':'')+text.trim());
+  let res=null;
+  if(settings.apiKey){ try{ res = await aiTeacher(text); }catch(e){ console.warn('Claude teacher failed, using local logic', e); } }
+  if(!res) res = brain(text, src);
+  if(!S) return;
+  addChat('assistant', res.reply, res.decision==='allow'?'ok':res.decision==='deny'?'no':'');
+  (res.decision==='allow'?sfx.good:res.decision==='deny'?sfx.warn:sfx.soft)();
+  say(res.reply);
+  if(res.decision==='allow' && res.minutes>0) grantPass(res.kind==='none'?'other':res.kind, res.minutes);
+}
+function grantPass(kind, min){
+  S.pass={kind, dur:min*60, t:0, left:false, back:0, quiet:0};
+  S.grants.push({kind, at:S.active, min});
+  if(kind==='break'||kind==='food') S.lastBreakFocused=S.focused;
+  for(const k in S.hold) S.hold[k]=0; S.cur='focus'; S.clear=0; S.ep=null; S.phoneHits=[];
+  $('#alertb').classList.remove('show');
+}
+function passTick(dt){
+  const p=S.pass; p.t+=dt;
+  if(['toilet','water','food','break','stretch','pills','other'].includes(p.kind)){
+    if(!M.has) p.left=true;
+    if(!p.left && p.t>30 && ['toilet','water','pills'].includes(p.kind)) return endPass('stayed');
+    if(p.left && M.has){ p.back+=dt; if(p.back>3) return endPass('back'); } else p.back=0;
+  }
+  if(p.kind==='call'){
+    const busy = S.phoneHits.length>0 || (PH.conn && PH.eff==='here' && PH.moving);
+    p.quiet = busy ? 0 : p.quiet+dt;
+    if(p.t>20 && p.quiet>6) return endPass('back');
+  }
+  if(p.t>=p.dur) endPass('time');
+}
+function endPass(why){
+  S.pass=null; for(const k in S.hold) S.hold[k]=0; S.cur='focus'; S.clear=0; S.phoneHits=[];
+  if(why==='back'){ sfx.good(); say(pick(TX().back)); } else if(why==='stayed'){ sfx.soft(); say(TX().stayed); } else { sfx.warn(); say(TX().timeUp); }
+}
+function chatSubmit(){ const i=$('#chatIn'), v=i.value.trim(); if(!v) return; i.value=''; teacherAsk(v); }
+$('#sendBtn').onclick=chatSubmit;
+$('#chatIn').addEventListener('keydown',e=>{ if(e.key==='Enter') chatSubmit(); if(e.key==='Escape') e.target.blur(); });
+$('#chatIn').addEventListener('focus',()=>{ if(S) S.chatting=true; });
+$('#chatIn').addEventListener('blur',()=>{ if(S) S.chatting=false; });
+// голосом: нажми 🎤 или V и скажи «можно в туалет?»
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec=null;
+function toggleMic(){
+  if(!SR){ toast(t('noMic')); return; }
+  if(rec){ rec.stop(); return; }
+  rec=new SR(); rec.lang = L()==='ru'?'ru-RU':'en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onresult = e => { const txt=e.results[0][0].transcript; if(txt) teacherAsk(txt); };
+  rec.onend = () => { rec=null; $('#micBtn').classList.remove('on'); if(S) S.chatting=false; };
+  rec.onerror = () => {};
+  try{ speechSynthesis.cancel(); }catch{}
+  rec.start(); $('#micBtn').classList.add('on'); if(S) S.chatting=true; $('#coachSay').textContent=t('micHint');
+}
+$('#micBtn').onclick=toggleMic;
+
+/* ================= телефон: связь через Sensei-сервер ================= */
+// state от сервера: here — страница Sensei открыта; sleep — экран погас, телефон лежал (так и надо);
+// held — экран погас / ушёл в другое приложение, когда телефон был в руках. Что это было, решаем по камере (phoneResolve).
+// eff — итог: here / sleep / held (ещё решаем) / used (пользовался) / none
+const PH = { lastId:-1, conn:false, paired:false, state:'none', eff:'none', prevEff:'none', hideN:0, verdict:{}, res:null, usedN:0,
+             hiddenFor:0, pickupAgo:null, moving:false, movingSince:0, forgive:0 };
+function phoneEff(){ PH.eff = PH.state==='held' ? (PH.verdict[PH.hideN] || 'held') : PH.state; }
+function handlePhone(p){
+  if(!p) return;
+  PH.paired=p.paired; PH.conn=p.connected; PH.state=p.state||'none'; PH.hideN=p.hide_n||0;
+  PH.hiddenFor=p.hidden_for||0; PH.pickupAgo=p.pickup_ago;
+  const mv = !!p.moving && PH.state==='here';
+  if(mv && !PH.moving) PH.movingSince=performance.now();
+  PH.moving=mv;
+  phoneEff();
+  // телефон был выключен (или в другом приложении) и снова открыл Sensei — значит, его взяли в руки
+  // (если телефон просто пропал из сети на пару секунд — это не «включил», молчим)
+  if(S && S.phase==='run' && ['sleep','held','used'].includes(PH.prevEff) && !PH.prevSilent && PH.eff==='here'
+     && !(S.pass && S.pass.kind==='call') && performance.now()-(PH.wokeAt||-1e12)>15000){
+    PH.wokeAt=performance.now(); sfx.warn(); say(t('phWoke'));
+  }
+  PH.prevEff=PH.eff; PH.prevSilent=!!p.silent;
+  const maxId = p.events.reduce((m,e)=>Math.max(m,e.id),0);
+  if(PH.lastId<0 || !S || S.phase!=='run'){ PH.lastId=Math.max(PH.lastId,maxId); updPhone(); return; } // старые события не обрабатываем
+  for(const ev of p.events){ if(ev.id<=PH.lastId) continue; PH.lastId=ev.id; onPhoneEvent(ev); }
+  updPhone();
+}
+function onPhoneEvent(ev){
+  const tx=TX();
+  if(ev.kind==='hello'){ sfx.soft(); say(tx.phHello); }
+  else if(ev.kind==='call') teacherAsk(tx.phCallMsg, 'phone');
+  else if(ev.kind==='ask') teacherAsk(ev.value||'', 'phone');
+  else if(ev.kind==='reason'){
+    if(ev.value==='distracted'){ say(tx.honest); return; }
+    PH.forgive++;
+    if(PH.forgive<=3){
+      if(S.counts.phone>0){ S.counts.phone--; S.total=Math.max(0,S.total-1); }
+      say(ev.value==='locked' ? tx.lockedTip : tx.forgiveCall);
+    } else say(tx.forgiveNo);
+  }
+}
+// телефон «занят»: камера подтвердила, что им пользовались, или он в руках с включённым экраном дольше 2,5 с
+// (взял, чтобы выключить, — это 1–2 секунды, за это не ругаем)
+const phoneLinkBusy = () => PH.conn && !(S && S.pass && S.pass.kind==='call') &&
+  (PH.eff==='used' || (PH.eff==='here' && PH.moving && performance.now()-PH.movingSince>2500));
+// экран телефона погас, когда он был в руках: выключил или ушёл в другое приложение? Смотрим на человека.
+// Смотрит в экран компьютера 2,5 с — выключил (молчим). Смотрит вниз / в сторону / камера видит телефон 4 с — пользуется.
+function phoneResolve(dt, dyaw, downPose){
+  if(PH.state!=='held' || PH.verdict[PH.hideN]) return;
+  if(!PH.res || PH.res.n!==PH.hideN) PH.res={n:PH.hideN, ok:0, bad:0};
+  const r=PH.res, camSees = S.phoneHits.reduce((a,h)=>a+h.w,0)>=1;
+  const looking = M.has && !downPose && Math.abs(dyaw)<25 && !camSees;
+  const using = camSees || (M.has && ((downPose && !settings.paper) || Math.abs(dyaw)>30));
+  if(looking) r.ok+=dt; else if(using) r.bad+=dt;
+  if(r.ok>=2.5 || (PH.hiddenFor>25 && r.bad<4)) PH.verdict[PH.hideN]='sleep';
+  else if(r.bad>=4){ PH.verdict[PH.hideN]='used'; PH.usedN=PH.hideN; }
+  phoneEff(); if(PH.eff!=='held') updPhone();
+}
+function updPhone(){
+  const st=$('#phSt'); if(!st) return;
+  let cls='', txt=t('phNone');
+  if(PH.paired && !PH.conn) txt=t('phLost');
+  else if(PH.conn){ const e=PH.eff;
+    if(e==='used'){cls='bad'; txt=t('phHidden');} else if(e==='sleep'){cls='ok'; txt=t('phSleep');} else if(e==='held'){txt=t('phHeld');}
+    else if(PH.moving){cls='bad'; txt=t('phMoving');} else {cls='ok'; txt=t('phOk');} }
+  st.className='st '+cls; st.querySelector('span').textContent=txt;
+  $('#phBtn').style.display = PH.conn ? 'none' : '';
+}
+let lastPush=0;
+function pushSession(now, stTxt, timeStr){
+  if(now-lastPush<1000 || !agentOK()) return; lastPush=now;
+  const mood = !S ? '' : S.pass ? 'pass' : S.cur==='focus' ? (S.flow>=900?'flow':'ok') : (['phone','escape','screen'].includes(S.cur)?'bad':'warn');
+  fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(S ? {active:true, timer:timeStr, state:stTxt, say:$('#coachSay').textContent, goal:settings.task, mood, used_hide:PH.usedN} : {active:false})}).catch(()=>{});
+}
+async function openPair(){
+  initAudio();
+  const m=$('#pairModal'), qr=$('#qr'); qr.innerHTML=''; $('#pairUrl').textContent='';
+  $('#pairSteps').innerHTML = t('pairSteps').map(s=>`<li>${esc(s)}</li>`).join('');
+  m.classList.add('on');
+  try{
+    const j=await (await fetch('/api/pair',{cache:'no-store'})).json();
+    if(!j.url) throw 0;
+    $('#pairUrl').textContent = j.url + ((j.alt&&j.alt.length) ? '\n' + t('pairAlt') + '\n' + j.alt.join('\n') : '');
+    $('#pairUrl').style.whiteSpace='pre-line';
+    if(window.QRCode) new QRCode(qr,{text:j.url,width:220,height:220,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    else qr.textContent=j.url;
+  }catch{ qr.style.display='none'; $('#pairUrl').textContent=t('pairNoServer'); return; }
+  qr.style.display='';
+}
+$('#phBtn').onclick=openPair; $('#phBtnSetup').onclick=openPair;
+$('#pairClose').onclick=()=>$('#pairModal').classList.remove('on');
+
+/* ================= строгий режим (как «Гид-доступ» для Mac) ================= */
+const SYS_APPS = /^(loginwindow|Dock|Control Center|Notification Center|SystemUIServer|Spotlight|ScreenSaverEngine|universalaccessd|WindowManager|Wallpaper|coreautha|SecurityAgent|UserNotificationCenter|Sensei)$/i;
+async function loadApps(){
+  try{
+    const j=await (await fetch('/api/apps',{cache:'no-store'})).json();
+    const list=[...new Set([...(j.apps||[]), ...settings.allowApps])].filter(a=>!SYS_APPS.test(a)).sort((a,b)=>a.localeCompare(b));
+    $('#allowApps').innerHTML = list.map(a=>`<button class="pill sm ${settings.allowApps.includes(a)?'on':''}" data-app="${esc(a)}">${esc(a)}</button>`).join('') || `<span class="note">${t('strictNeedServer')}</span>`;
+  }catch{ $('#allowApps').innerHTML=`<span class="note warn">${t('strictNeedServer')}</span>`; }
+}
+const siteAllowed = host => !host || settings.allowSites.split(',').map(x=>x.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'')).filter(Boolean)
+  .some(d => host===d || host.endsWith('.'+d));
+const enforce = body => fetch('/api/enforce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
+// вызывается из screenTick, когда сервер сообщил активное приложение
+function strictTick(a, here, now){
+  if(!S.strictOn || S.pass || S.phase!=='run' || S.paused) { S.strictBadT=0; return null; }
+  const app=a.app||'', host=hostOf(a.url||'');
+  if(here || SYS_APPS.test(app)){ S.strictBadT=0; return null; }
+  let bad=null;
+  if(a.browser){ if(!siteAllowed(host)) bad={kind:'site', label:host||app}; }
+  else if(!settings.allowApps.includes(app)) bad={kind:'app', label:app};
+  if(!bad){ if(!a.browser) S.lastAllowedApp=app; S.strictBadT=0; return null; }
+  S.strictBadT = (S.strictBadT||0) + 1;
+  if(S.strictBadT>=2 && now-(S.lastEnforce||0)>2500){   // ~1 с подряд — и сразу назад
+    S.lastEnforce=now;
+    if(bad.kind==='site') enforce({action:'block_tab', browser:app});
+    else if(S.lastAllowedApp) enforce({action:'app', app:S.lastAllowedApp});
+    else enforce({action:'sensei', browser:a.browser?app:null});
+    sfx.alarm(); say(bad.kind==='site' ? t('strictSiteBlocked',{d:bad.label}) : t('strictBlocked',{app:bad.label}));
+  }
+  return bad.label;
+}
+$('#strictExit').onclick = () => { if(S) { S.exitStrictReq=true; openEm(); } };
+
+/* ================= разблокировка объяснением (метод Фейнмана) ================= */
+const FY = { stage:'', purpose:'', explain:'', question:'', timer:0, until:0, rec:null, lastFail:-1e12 };
+function fyRecStart(){
+  if(!SR) return; try{ FY.rec && FY.rec.stop(); }catch{}
+  const r=new SR(); r.lang=L()==='ru'?'ru-RU':'en-US'; r.continuous=true; r.interimResults=true;
+  const base=$('#fyText').value; let finalTxt='';
+  r.onresult = e => { let interim=''; for(let i=e.resultIndex;i<e.results.length;i++){ const tx=e.results[i][0].transcript; if(e.results[i].isFinal) finalTxt+=tx+' '; else interim+=tx; } $('#fyText').value=(base?base+' ':'')+finalTxt+interim; };
+  r.onend = () => { if(FY.rec===r && (FY.stage==='explain'||FY.stage==='answer')) try{ r.start(); }catch{} };
+  try{ speechSynthesis.cancel(); r.start(); FY.rec=r; }catch{}
+}
+function fyRecStop(){ const r=FY.rec; FY.rec=null; try{ r && r.stop(); }catch{} }
+function fyShow(h,p,btn,{text=false,timer=''}={}){
+  $('#fyH').textContent=h; $('#fyP').textContent=p; $('#fyGo').textContent=btn; $('#fyGo').style.display=btn?'':'none';
+  $('#fyText').style.display=text?'':'none'; $('#fyTimer').textContent=timer;
+}
+function openFeyn(purpose){
+  if(!S || S.phase!=='run') return;
+  const wait = 300000-(performance.now()-FY.lastFail);
+  if(wait>0){ toast(t('fyCooldown',{m:Math.ceil(wait/60000)})); return; }
+  FY.purpose=purpose; FY.stage='intro'; S.parking=true; $('#fyText').value='';
+  fyShow(t('fyIntroH_'+purpose), t('fyIntroP',{g:settings.task}) + (settings.apiKey?'':t('fyLocalNote')), t('fyStart'));
+  $('#feyn').classList.add('on');
+}
+function fyCountdown(sec, onEnd){
+  clearInterval(FY.timer); FY.until=performance.now()+sec*1000;
+  const tick=()=>{ const left=Math.max(0,Math.ceil((FY.until-performance.now())/1000)); $('#fyTimer').textContent=fmt(left); if(left<=0){ clearInterval(FY.timer); onEnd(); } };
+  tick(); FY.timer=setInterval(tick,250);
+}
+async function fyAsk(kind, payload){
+  const client=await getClient();
+  const schema = kind==='q' ? {type:'object',additionalProperties:false,required:['question'],properties:{question:{type:'string'}}}
+                            : {type:'object',additionalProperties:false,required:['pass','feedback'],properties:{pass:{type:'boolean'},feedback:{type:'string'}}};
+  const content=[];
+  if(scr.stream){ try{ const c=await grab(1024); if(c) content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:c.toDataURL('image/jpeg',.7).split(',')[1]}}); }catch{} }
+  const notes=($('#notes').value||'').slice(-3000);
+  content.push({type:'text', text:`Session goal: "${settings.task}"\nStudent's own notes (may be empty): ${notes||'—'}\n\nStudent's 60-second explanation:\n${payload.explain}` + (kind==='j' ? `\n\nYour question: ${payload.question}\nStudent's answer:\n${payload.answer}` : '')});
+  const sys = `You are ${P().name.en}, a ${P().tag.en.toLowerCase()} teacher running a Feynman check: the student must prove real understanding of what they just learned or produced before being allowed to ${FY.purpose==='end'?'end the session early':'take a 10-minute social-media break'}. Write in ${L()==='ru'?'Russian':'English'}.` +
+    (kind==='q' ? ` Ask exactly ONE short, tricky question that tests understanding of the explanation (not memorisation): a why/what-if/counter-example question. If a screenshot is attached, you may ground the question in it.`
+                : ` Decide pass/fail. Pass only if the explanation is concrete and on-topic AND the answer to your question shows genuine understanding (minor slips are fine). Vague, off-topic or copied-sounding answers fail. Give 1–2 sentences of feedback: what was good, or what is missing.`);
+  const req={ model:settings.aiModel, max_tokens:1024, system:sys, output_config:{effort:'low', format:{type:'json_schema', schema}}, messages:[{role:'user', content}] };
+  if(settings.aiModel!=='claude-haiku-5-5'){ req.betas=['server-side-fallback-2026-07-01']; req.fallbacks='default'; }
+  const r=await client.beta.messages.create(req);
+  if(r.stop_reason==='refusal') return null;
+  const tb=r.content.find(b=>b.type==='text'); return tb ? JSON.parse(tb.text) : null;
+}
+const words = s => (s||'').trim().split(/\s+/).filter(w=>w.length>1).length;
+async function fyNext(){
+  if(FY.stage==='intro'){
+    FY.stage='explain'; fyShow(t('fyExplainH'), t('fyExplainP'), t('fyDone'), {text:true});
+    fyRecStart(); fyCountdown(60, fyNext); setTimeout(()=>$('#fyText').focus(),50);
+  } else if(FY.stage==='explain'){
+    clearInterval(FY.timer); fyRecStop(); FY.explain=$('#fyText').value.trim();
+    if(words(FY.explain)<25){ return fyResult(false, t('fyTooShort')); }
+    FY.stage='thinking'; fyShow(t('fyThinking'), '', '');
+    let q=null; if(settings.apiKey){ try{ q=(await fyAsk('q',{explain:FY.explain}))?.question; }catch(e){ console.warn(e); } }
+    FY.question = q || t('fyLocalQ');
+    FY.stage='answer'; $('#fyText').value=''; fyShow(t('fyAnswerH'), FY.question, t('fyAnswer'), {text:true});
+    say(FY.question); setTimeout(()=>{ if(FY.stage==='answer'){ fyRecStart(); fyCountdown(45, fyNext); } }, 400);
+  } else if(FY.stage==='answer'){
+    clearInterval(FY.timer); fyRecStop(); const ans=$('#fyText').value.trim();
+    FY.stage='thinking'; fyShow(t('fyThinking'), '', '');
+    let v=null; if(settings.apiKey){ try{ v=await fyAsk('j',{explain:FY.explain, question:FY.question, answer:ans}); }catch(e){ console.warn(e); } }
+    if(!v) v = { pass: words(FY.explain)>=50 && words(ans)>=20, feedback: words(ans)<20 ? t('fyTooShort') : '' };
+    fyResult(v.pass, v.feedback||'');
+  } else if(FY.stage==='done'){ closeFeyn(); }
+}
+function fyResult(pass, feedback){
+  FY.stage='done';
+  if(pass){
+    sfx.good();
+    const msg = FY.purpose==='end' ? t('fyEndOk') : t('fyBreakOk');
+    fyShow(t('fyPassH'), [feedback,msg].filter(Boolean).join(' '), t('fyOk')); say(msg);
+    FY.reward = FY.purpose;
+  } else {
+    sfx.warn(); FY.lastFail=performance.now();
+    fyShow(t('fyFailH'), [feedback, t('fyRetryLater')].filter(Boolean).join(' '), t('fyContinue')); say(feedback || t('fyRetryLater'));
+    FY.reward = null;
+  }
+}
+function closeFeyn(){
+  clearInterval(FY.timer); fyRecStop(); $('#feyn').classList.remove('on'); FY.stage='';
+  if(!S) return; S.parking=false;
+  const r=FY.reward; FY.reward=null;
+  if(r==='end') finish('feynman');
+  else if(r==='break') grantPass('social',10);
+}
+$('#fyGo').onclick=fyNext;
+$('#fyCancel').onclick=()=>{ FY.reward=null; closeFeyn(); };
+$('#feynBtn').onclick=()=>openFeyn('break');
+
+/* ================= проверка тетради по камере ================= */
+async function checkPaper(){
+  if(!S || S.phase!=='run') return;
+  if(!settings.apiKey){ toast(t('needKey')); return; }
+  S.parking=true; const ov=$('#snap'); ov.classList.add('on');
+  for(let n=3;n>0;n--){ $('#snapN').textContent=n; sfx.soft(); await new Promise(r=>setTimeout(r,900)); }
+  const W=cam.videoWidth, H=cam.videoHeight, c=document.createElement('canvas'); c.width=W; c.height=H; c.getContext('2d').drawImage(cam,0,0,W,H);
+  ov.classList.remove('on'); S.parking=false; sfx.ready();
+  addChat('user','📄'); $('#coachSay').textContent=t('paperChecking');
+  try{
+    const client=await getClient();
+    const req={ model:settings.aiModel, max_tokens:2048, system:`You are ${P().name.en}, a ${P().tag.en.toLowerCase()} teacher. The student holds handwritten work (notebook or paper) up to the webcam. Read it, check it for mistakes (maths, logic, facts, spelling) in relation to the session goal, and reply in ${L()==='ru'?'Russian':'English'} in at most 3 short sentences: say what is correct, point to the first mistake if there is one and hint how to fix it. If the page is unreadable, ask them to hold it closer and steadier.`,
+      output_config:{effort:'medium', format:{type:'json_schema', schema:{type:'object',additionalProperties:false,required:['reply'],properties:{reply:{type:'string'}}}}},
+      messages:[{role:'user', content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:c.toDataURL('image/jpeg',.85).split(',')[1]}},{type:'text',text:`Session goal: "${settings.task}"`}]}] };
+    if(settings.aiModel!=='claude-haiku-5-5'){ req.betas=['server-side-fallback-2026-07-01']; req.fallbacks='default'; }
+    const r=await client.beta.messages.create(req);
+    const tb=r.stop_reason!=='refusal' && r.content.find(b=>b.type==='text');
+    const reply = tb ? JSON.parse(tb.text).reply : t('aiErr');
+    if(S){ addChat('assistant', reply); say(reply); }
+  }catch(e){ console.warn(e); toast(t('aiErr')); }
+}
+$('#paperBtn').onclick=checkPaper;
+
+/* ================= controls ================= */
+function togglePause(){
+  if(!S||S.phase!=='run') return;
+  S.paused=!S.paused; $('#paused').classList.toggle('on',S.paused);
+  $('#pauseBtn').textContent = t(S.paused?'resume':'pause');
+  if(S.paused){ try{speechSynthesis.cancel()}catch{} $('#alertb').classList.remove('show'); }
+  lastUI=0;
+}
+$('#pauseBtn').onclick=togglePause;
+$('#endBtn').onclick=()=>{ if(S && S.strictOn && settings.dur>0 && settings.dur*60-S.active>60) openFeyn('end'); else finish('manual'); };
+$('#startBtn').onclick=startSession;
+$('#sSound').onchange=e=>{ settings.sound=e.target.value; saveSettings(); initAudio(); setAmbient(settings.sound); };
+addEventListener('keydown',e=>{
+  if(!$('#session').classList.contains('active') || e.target.closest('textarea,input')) return;
+  if(e.code==='KeyP') togglePause();
+  if(e.code==='KeyD') $('#dbgbox').classList.toggle('on');
+  if(e.code==='KeyN'){ e.preventDefault(); openPark(); }
+  if(e.code==='KeyV'){ e.preventDefault(); toggleMic(); }
+});
+/* --- «мысль на потом»: выгрузить отвлекающую мысль, не бросая работу --- */
+function openPark(){ if(!S || S.phase!=='run') return; S.parking=true; $('#parkModal').classList.add('on'); const i=$('#parkIn'); i.value=''; setTimeout(()=>i.focus(),50); }
+function closePark(){ if(S) S.parking=false; $('#parkModal').classList.remove('on'); }
+$('#parkBtn').onclick=openPark; $('#parkClose').onclick=closePark;
+$('#parkIn').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closePark(); }
+  if(e.key==='Enter'){ const v=e.target.value.trim(); if(v && S){ S.parked.push(v); const arr=store.get('sensei.parked',[]); arr.push({ts:Date.now(),text:v}); store.set('sensei.parked',arr.slice(-200)); toast(t('parkSaved')); } closePark(); }
+});
+async function showAgentNote(){
+  const n=$('#agentNote'); if(!n) return;
+  await pollAgent();
+  n.textContent = agentOK() ? t('agentOk') : t('agentNo'); n.className='note'+(agentOK()?'':' warn');
+}
+$('#pipBtn').onclick=async()=>{
+  try{
+    if(pipWin){ pipWin.close(); return; }
+    pipWin = await documentPictureInPicture.requestWindow({width:300,height:130});
+    const st=document.createElement('style');
+    st.textContent=[...document.styleSheets].map(ss=>{ try{ return [...ss.cssRules].map(r=>r.cssText).join('\n'); }catch{ return ''; } }).join('\n');
+    pipWin.document.head.append(st); pipWin.document.body.style.margin='0';
+    pipWin.document.body.append(mini); mini.classList.add('pip');
+    pipWin.addEventListener('pagehide',()=>{ document.body.append(mini); mini.classList.remove('pip'); pipWin=null; });
+  }catch(e){ console.warn(e); toast(t('pipFail')); }
+};
+
+/* ================= finish & summary ================= */
+function rankOf(pct,active){ if(active<180) return '—'; return pct>=92?'S':pct>=80?'A':pct>=65?'B':pct>=50?'C':'D'; }
+const RANK_COL = { S:'#ffc857', A:'#3ef2b0', B:'#4cc9f0', C:'#ffb020', D:'#ff4d5e', '—':'#8791a5' };
+let savedIdx=-1;
+function finish(reason){
+  if(!S) return;
+  stopTicker();
+  if(S.locked) exitLock(false);
+  try{ speechSynthesis.cancel(); }catch{}
+  if(stream){ stream.getTracks().forEach(x=>x.stop()); stream=null; }
+  cam.srcObject=null; stopScreen(); stopAmbient();
+  try{ wakeLock?.release(); }catch{}
+  if(pipWin){ try{pipWin.close()}catch{} }
+  $('#lockAlarm').classList.remove('on'); $('#emModal').classList.remove('on');
+  S.done=true; document.body.classList.remove('strict');
+  const pct = S.active>1 ? Math.round(S.focused/S.active*100) : 0, rank = rankOf(pct,S.active);
+  const r=$('#sRank'); r.textContent=rank; r.style.background=`linear-gradient(135deg,${RANK_COL[rank]},#fff3)`; r.style.setProperty('--rc',RANK_COL[rank]+'aa');
+  $('#sTitle').textContent = reason==='time' ? t('timeUp') : t('ended');
+  const verdict = rank==='—' ? t('tooShort') : lines().verdict[rank];
+  $('#sVerdict').textContent=verdict;
+  $('#sgPct').textContent=pct+'%'; $('#sgTime').textContent=fmt(S.active); $('#sgDist').textContent=S.total; $('#sgBest').textContent=fmt(S.best);
+  const parts=Object.entries(S.counts).filter(([,v])=>v).map(([k,v])=>`<span>${t('ty_'+k)}: <b>${v}</b></span>`);
+  if(S.yawns) parts.push(`<span>${t('yawns')}: <b>${S.yawns}</b></span>`);
+  if(S.drifts) parts.push(`<span>${t('driftsCaught')}: <b>${S.drifts}</b></span>`);
+  if(S.emergency) parts.push(`<span>${t('emergencies')}: <b>${S.emergency}</b></span>`);
+  $('#sTypes').innerHTML = parts.join('') || `<span>${t('noDist')}</span>`;
+  $('#sPark').innerHTML = S.parked.map(x=>`<li>${esc(x)}</li>`).join('');
+  document.querySelectorAll('#checkRow .pill').forEach(b=>b.classList.remove('on'));
+  savedIdx=-1;
+  if(S.active>=20){
+    const h=store.get('sensei.sessions',[]);
+    h.push({ts:Date.now(),task:settings.task,focused:Math.round(S.focused),active:Math.round(S.active),pct,rank,dist:S.total,best:Math.round(S.best),phone:S.counts.phone,screen:S.counts.screen,escape:S.counts.escape,emergency:S.emergency,parked:S.parked});
+    const trimmed=h.slice(-300); store.set('sensei.sessions',trimmed); savedIdx=trimmed.length-1;
+  }
+  $('#checkin').style.display = savedIdx>=0 ? '' : 'none';
+  $('#checkQ').textContent = t('checkQ2',{g:settings.task});
+  $('#summary').classList.add('on');
+  document.body.dataset.state='idle'; document.title='Sensei — '+t('tagline');
+  const doneS=S; requestAnimationFrame(()=>drawTimeline($('#stl'),doneS));
+  if(rank!=='—'){ sfx.good(); say(verdict); }
+  window.__last=S; S=null; lastPush=0; pushSession(performance.now());
+}
+$('#checkRow').onclick = e => {
+  const b=e.target.closest('.pill'); if(!b || savedIdx<0) return;
+  document.querySelectorAll('#checkRow .pill').forEach(x=>x.classList.toggle('on',x===b));
+  const h=store.get('sensei.sessions',[]); if(h[savedIdx]){ h[savedIdx].done=b.dataset.v; store.set('sensei.sessions',h); }
+  say(lines().done[b.dataset.v]);
+};
+$('#againBtn').onclick=()=>{ try{speechSynthesis.cancel()}catch{}; $('#summary').classList.remove('on'); $('#session').classList.remove('active'); $('#setup').classList.add('active'); renderStats(); window.scrollTo(0,0); };
+
+buildSetup();
+window.__dbg = { get S(){return S}, PH, SIM, TEST, startSession, handlePhone, teacherAsk, openFeyn, fyNext, closeFeyn, FY, strictTick, matchDistraction, finish, scr, step, settings, runOcr, attachScreen, chooseVoice, langVoices, colorHist, histSim, agentOK, pollAgent, driftTick, brain, get HANDS(){return HANDS} };
+</script>
+</body>
+</html>
