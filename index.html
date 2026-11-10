@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sensei — AI-наставник фокуса</title>
+<title>Lock In — AI-наставник фокуса</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -280,7 +280,7 @@ body.locked .timeline{display:none}
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen active">
-  <div class="brand"><div class="logo"></div>SENSEI<small data-i18n="tagline"></small>
+  <div class="brand"><div class="logo"></div>LOCK IN<small data-i18n="tagline"></small>
     <div class="langsw" id="langSw"><button data-l="ru">RU</button><button data-l="en">EN</button></div>
   </div>
   <div class="setup-grid">
@@ -633,7 +633,7 @@ const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
 const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); return s[Math.floor(s.length/2)]; };
 const fmt = s => { s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return h? `${h}:${p(m)}:${p(x)}` : `${p(m)}:${p(x)}`; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch{ return d } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch{} } };
+const store = { get(k,d){ try{ const v=localStorage.getItem(k) ?? localStorage.getItem(k.replace(/^lockin\./,'sensei.')); return v?JSON.parse(v):d }catch{ return d } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch{} } };
 const pick = a => a[Math.floor(Math.random()*a.length)];
 
 /* ================= i18n ================= */
@@ -654,8 +654,8 @@ ru:{
   aiT:'Умная проверка через Claude', aiTs:'Claude смотрит на скриншот и решает, относится ли он к твоей задаче. Нужен твой API-ключ Anthropic.',
   keyL:'API-ключ Anthropic', modelL:'Модель и частота',
   every30:'каждые 30 с', every60:'каждую минуту', every120:'каждые 2 мин',
-  aiNote:'В этом режиме скриншоты экрана отправляются в Anthropic API, и каждая проверка платная (Haiku заметно дешевле Opus). Ключ хранится только в этом браузере. Пока ты на странице Sensei, проверки не делаются.',
-  secLock:'Режим замка', lockT:'Работать только в Sensei (полный экран)', lockTs:'Экран блокируется в полноэкранном режиме со встроенной рабочей зоной для заметок. Выход или переключение на другое окно считается нарушением. Для выхода есть аварийная кнопка.',
+  aiNote:'В этом режиме скриншоты экрана отправляются в Anthropic API, и каждая проверка платная (Haiku заметно дешевле Opus). Ключ хранится только в этом браузере. Пока ты на странице Lock In, проверки не делаются.',
+  secLock:'Режим замка', lockT:'Работать только в Lock In (полный экран)', lockTs:'Экран блокируется в полноэкранном режиме со встроенной рабочей зоной для заметок. Выход или переключение на другое окно считается нарушением. Для выхода есть аварийная кнопка.',
   secExtra:'Фишки', careT:'Забота о теле', careTs:'Напомню выпрямить спину, отодвинуться от экрана и каждые 20 минут дам глазам отдых по правилу 20-20-20.',
   paperT:'Работаю с бумагой или книгой', paperTs:'Не считать отвлечением взгляд вниз.',
   soundL:'Фоновый звук для фокуса', snd_off:'Без звука', snd_brown:'Коричневый шум', snd_rain:'Дождь', snd_alpha:'Альфа-ритм (наушники)', soundS:'🎧',
@@ -669,7 +669,7 @@ ru:{
   pausedT:'ПАУЗА', wsH:'Рабочая зона', notesDl:'Скачать .txt', notesPh:'Пиши здесь: конспект, план, текст, решения…\n\nВсё сохраняется автоматически.',
   focusNow:'Фокус сейчас', allClear:'Всё чисто', flowWord:'Поток', lvRamp:'Разгон', lvFocus:'Фокус', lvFlow:'ПОТОК', flowLeft:'Без отвлечений до режима «Поток» — ещё {t}', inFlow:'Ты в потоке — держи темп',
   cDist:'отвлечений', cPhone:'телефон', cBest:'лучшая серия', cPct:'время в фокусе',
-  scrH:'Экран', scrOff:'не отслеживается', scrHere:'ты в Sensei', scrOk:'по задаче', scrWait:'жду первой проверки', scrOn:'Следить за экраном', scrOff2:'Перестать следить', scrAi:'Claude', scrLocal:'локально',
+  scrH:'Экран', scrOff:'не отслеживается', scrHere:'ты в Lock In', scrOk:'по задаче', scrWait:'жду первой проверки', scrOn:'Следить за экраном', scrOff2:'Перестать следить', scrAi:'Claude', scrLocal:'локально',
   aiKeyBad:'Claude: неверный API-ключ', aiErr:'Claude: ошибка запроса (см. консоль)', screenDenied:'Доступ к экрану не дан — продолжаю без него.',
   pause:'Пауза (P)', resume:'Продолжить (P)', pip:'Мини-окно', lockNow:'Включить замок', endBtn:'Завершить сессию',
   emBtn:'Аварийный выход', alarmH:'Ты вышел из замка', alarmP:'Пока ты не вернёшься, это считается отвлечением.', reLock:'Вернуться в замок',
@@ -683,14 +683,14 @@ ru:{
   ty_phone:'Телефон', ty_away:'Ушёл из кадра', ty_lookaway:'Отвлёкся', ty_down:'Смотрел вниз', ty_sleepy:'Засыпал', ty_screen:'Не тот экран', ty_escape:'Выход из замка', ty_focus:'В фокусе',
   days:['вс','пн','вт','ср','чт','пт','сб'],
   firstStepL:'С чего начнёшь? Самый первый маленький шаг', firstStepPh:'Например: открою документ и напишу 3 предложения', firstStepNote:'Конкретный первый шаг заметно повышает шанс начать и довести дело до конца (исследования Голлвитцера). Наставник напомнит его на старте.', firstStepSay:'Первый шаг: {s}. Начинай прямо сейчас.',
-  agentOk:'✓ Точный режим: Sensei-сервер сам видит активное приложение и сайт, делиться экраном не нужно.', agentNo:'Sensei-сервер не запущен, поэтому экран читается через OCR, а это менее точно. Для точного режима запусти в папке приложения: python3 sensei_server.py',
+  agentOk:'✓ Точный режим: сервер Lock In сам видит активное приложение и сайт, делиться экраном не нужно.', agentNo:'Сервер Lock In не запущен, поэтому экран читается через OCR, а это менее точно. Для точного режима запусти в папке приложения: python3 lockin_server.py',
   scrAgent:'точно', scrNotMonitor:'Ты выбрал не весь экран, поэтому другие приложения не видны. Нажми «Перестать следить», затем «Следить» и выбери «Весь экран».',
   urlDenied:'Чтобы видеть сайт в браузере, разреши доступ в окне macOS или в Системных настройках → Конфиденциальность и безопасность → Автоматизация.',
   learnH:'Покажи свой телефон', learnS:'Держи его в рамке задней стороной к камере 3 секунды. Я запомню, как он выглядит, и буду узнавать его точнее.', learnSkip:'Пропустить', learnDone:'Запомнил твой телефон. Теперь его не спрячешь.', learnBtn:'Обучить на телефоне', relearnBtn:'Переобучить телефон',
   parkBtn:'Мысль на потом (N)', parkH:'Мысль на потом', parkHint:'Запиши отвлекающую мысль и сразу возвращайся. После сессии я её покажу.', parkPh:'Например: написать маме, купить хлеб…', parkSaved:'Записал. Вернёмся к этому после сессии.', parkSum:'Мысли на потом', emCancel2:'Закрыть (Esc)',
-  strictT:'🔒 Строгий режим: только разрешённые приложения', strictTs:'Как «Гид-доступ», только для Mac: откроешь что-то не из списка — Sensei сразу вернёт тебя в разрешённое окно, а запрещённый сайт закроет. Выйти можно аварийной кнопкой или объяснив учителю, что ты сделал.',
+  strictT:'🔒 Строгий режим: только разрешённые приложения', strictTs:'Как «Гид-доступ», только для Mac: откроешь что-то не из списка — Lock In сразу вернёт тебя в разрешённое окно, а запрещённый сайт закроет. Выйти можно аварийной кнопкой или объяснив учителю, что ты сделал.',
   allowAppsL:'Разрешённые приложения (нажми, чтобы выбрать)', appsRefresh:'↻ Обновить список запущенных', allowSitesL:'Разрешённые сайты (через запятую)', allowSitesPh:'например: docs.google.com, stackoverflow.com, github.com',
-  strictNote:'Нужен Sensei-сервер. Чтобы закрывать сайты, macOS один раз спросит разрешение на управление браузером.', strictNeedServer:'Строгий режим работает только с Sensei-сервером — сессия идёт без него.',
+  strictNote:'Нужен сервер Lock In. Чтобы закрывать сайты, macOS один раз спросит разрешение на управление браузером.', strictNeedServer:'Строгий режим работает только с сервером Lock In — сессия идёт без него.',
   strictBlocked:'Не сейчас. «{app}» не входит в разрешённые.', strictSiteBlocked:'Сайт {d} закрыт на эту сессию.', feynBtn:'🎓 Заработать 10 минут перерыва', strictExit:'🔓 Выйти из строгого режима', strictOff:'Строгий режим выключен до конца сессии.',
   fyIntroH_end:'Хочешь закончить раньше — объясни', fyIntroH_break:'10 минут перерыва — за объяснение', fyIntroP:'За 60 секунд своими словами объясни, что ты сейчас выучил или сделал по цели «{g}». Говори вслух (я слушаю) или пиши. Потом задам один вопрос на понимание.',
   fyStart:'Начать (60 секунд)', fyExplainH:'Объясняй…', fyExplainP:'Говори или пиши. Чем конкретнее, тем лучше.', fyDone:'Готово', fyThinking:'Учитель думает…', fyAnswerH:'Вопрос учителя', fyAnswer:'Ответить',
@@ -701,10 +701,10 @@ ru:{
   st_think:'ДУМАЕШЬ 🤔', st_write:'ПИШЕШЬ ✍️', driftSay:'Чувствую, начинаешь уплывать. Вернись к «{g}».', paperOffer:'Закончил писать? Поднеси тетрадь к камере — нажми «📄 Проверить тетрадь», я посмотрю на ошибки.',
   needGoal:'Сначала поставь цель сессии — что будет готово к концу?', checkQ2:'Цель: «{g}». Выполнил?', goalStat:'Цели выполнены: {d} из {n}',
   chatPh:'Спроси учителя: «можно в туалет?»…', noMic:'Голосовой ввод не поддерживается этим браузером — пиши текстом.', micHint:'Говори…',
-  phH:'Телефон', phPair:'📱 Подключить телефон', phPairSetup:'📱 Подключить телефон к Sensei', phSleep:'выключен — так и надо 👍', phWoke:'Телефон включился. Если это не звонок — выключи его и положи.', phHeld:'экран выключен — проверяю…', phNone:'не подключён', phOk:'лежит на месте', phHidden:'ушёл с экрана Sensei!', phMoving:'в руках!', phLost:'нет связи',
+  phH:'Телефон', phPair:'📱 Подключить телефон', phPairSetup:'📱 Подключить телефон к Lock In', phSleep:'выключен — так и надо 👍', phWoke:'Телефон включился. Если это не звонок — выключи его и положи.', phHeld:'экран выключен — проверяю…', phNone:'не подключён', phOk:'лежит на месте', phHidden:'ушёл с экрана Lock In!', phMoving:'в руках!', phLost:'нет связи',
   pairAlt:'Если не открывается — телефон в другой сети. Подключи его к той же Wi-Fi, что и Mac, или попробуй запасной адрес:',
-  pairH:'Подключи телефон', pairDone:'Готово', pairNoServer:'Sensei-сервер не запущен, поэтому телефон подключить нельзя. Запусти в папке приложения: python3 sensei_server.py',
-  pairSteps:['Телефон и Mac должны быть в одной сети Wi-Fi.','Наведи камеру телефона на QR-код и открой ссылку.','Появится предупреждение о сертификате: это нормально для локальной сети. На iPhone: «Подробнее» → «Посетить веб-сайт». На Android: «Дополнительные» → «Перейти на сайт».','Нажми «Подключиться».','Оставь открытой страницу Sensei, положи телефон и выключи экран — так и надо. Включишь его или возьмёшь в руки — Sensei сразу узнает.'],
+  pairH:'Подключи телефон', pairDone:'Готово', pairNoServer:'Сервер Lock In не запущен, поэтому телефон подключить нельзя. Запусти в папке приложения: python3 lockin_server.py',
+  pairSteps:['Телефон и Mac должны быть в одной сети Wi-Fi.','Наведи камеру телефона на QR-код и открой ссылку.','Появится предупреждение о сертификате: это нормально для локальной сети. На iPhone: «Подробнее» → «Посетить веб-сайт». На Android: «Дополнительные» → «Перейти на сайт».','Нажми «Подключиться».','Оставь открытой страницу Lock In, положи телефон и выключи экран — так и надо. Включишь его или возьмёшь в руки — Lock In сразу узнает.'],
   st_pass:'ПАУЗА: {k} {t}', pk_toilet:'туалет', pk_water:'вода', pk_pills:'лекарство', pk_call:'звонок', pk_food:'перекус', pk_break:'перерыв', pk_stretch:'разминка', pk_other:'пауза', ty_pass:'Разрешённая пауза'
 },
 en:{
@@ -723,8 +723,8 @@ en:{
   aiT:'Smart check with Claude', aiTs:'Claude looks at a screenshot and decides whether it relates to your task. Requires your own Anthropic API key.',
   keyL:'Anthropic API key', modelL:'Model and frequency',
   every30:'every 30 s', every60:'every minute', every120:'every 2 min',
-  aiNote:'In this mode screenshots of your screen are sent to the Anthropic API and every check costs money (Haiku is much cheaper than Opus). The key is stored only in this browser. No checks run while you are on the Sensei page.',
-  secLock:'Lock mode', lockT:'Work only inside Sensei (full screen)', lockTs:'The page locks into full screen with a built-in workspace for notes. Leaving it or switching to another window counts as a violation. There is an emergency exit.',
+  aiNote:'In this mode screenshots of your screen are sent to the Anthropic API and every check costs money (Haiku is much cheaper than Opus). The key is stored only in this browser. No checks run while you are on the Lock In page.',
+  secLock:'Lock mode', lockT:'Work only inside Lock In (full screen)', lockTs:'The page locks into full screen with a built-in workspace for notes. Leaving it or switching to another window counts as a violation. There is an emergency exit.',
   secExtra:'Extras', careT:'Body care', careTs:'I will remind you to sit up straight, lean back from the screen, and every 20 minutes rest your eyes with the 20-20-20 rule.',
   paperT:'I work with paper or a book', paperTs:'Do not count looking down as a distraction.',
   soundL:'Background focus sound', snd_off:'Silence', snd_brown:'Brown noise', snd_rain:'Rain', snd_alpha:'Alpha beats (headphones)', soundS:'🎧',
@@ -738,7 +738,7 @@ en:{
   pausedT:'PAUSED', wsH:'Workspace', notesDl:'Download .txt', notesPh:'Write here: notes, plan, draft, solutions…\n\nEverything is saved automatically.',
   focusNow:'Focus now', allClear:'All clear', flowWord:'Flow', lvRamp:'Warming up', lvFocus:'Focus', lvFlow:'FLOW', flowLeft:'Flow mode in {t} without distractions', inFlow:'You are in the flow — keep going',
   cDist:'distractions', cPhone:'phone', cBest:'best streak', cPct:'time in focus',
-  scrH:'Screen', scrOff:'not watched', scrHere:'you are in Sensei', scrOk:'on task', scrWait:'waiting for first check', scrOn:'Watch my screen', scrOff2:'Stop watching', scrAi:'Claude', scrLocal:'local',
+  scrH:'Screen', scrOff:'not watched', scrHere:'you are in Lock In', scrOk:'on task', scrWait:'waiting for first check', scrOn:'Watch my screen', scrOff2:'Stop watching', scrAi:'Claude', scrLocal:'local',
   aiKeyBad:'Claude: invalid API key', aiErr:'Claude: request error (see console)', screenDenied:'Screen access was not granted — continuing without it.',
   pause:'Pause (P)', resume:'Resume (P)', pip:'Mini window', lockNow:'Turn on lock', endBtn:'End session',
   emBtn:'Emergency exit', alarmH:'You left the lock', alarmP:'Until you come back, this counts as a distraction.', reLock:'Back into the lock',
@@ -752,14 +752,14 @@ en:{
   ty_phone:'Phone', ty_away:'Left the frame', ty_lookaway:'Distracted', ty_down:'Looked down', ty_sleepy:'Dozing', ty_screen:'Wrong screen', ty_escape:'Left the lock', ty_focus:'Focused',
   days:['Su','Mo','Tu','We','Th','Fr','Sa'],
   firstStepL:'How will you start? The very first small step', firstStepPh:'e.g. open the doc and write 3 sentences', firstStepNote:'A concrete first step makes you much more likely to start and finish (Gollwitzer’s research). Your coach will remind you at the start.', firstStepSay:'First step: {s}. Start right now.',
-  agentOk:'✓ Precise mode: the Sensei server sees the active app and site, so no screen sharing is needed.', agentNo:'The Sensei server is not running, so the screen is read with OCR, which is less accurate. For precise mode run in the app folder: python3 sensei_server.py',
+  agentOk:'✓ Precise mode: the Lock In server sees the active app and site, so no screen sharing is needed.', agentNo:'The Lock In server is not running, so the screen is read with OCR, which is less accurate. For precise mode run in the app folder: python3 lockin_server.py',
   scrAgent:'precise', scrNotMonitor:'You did not pick the entire screen, so other apps are invisible. Press “Stop watching”, then “Watch” and choose “Entire screen”.',
   urlDenied:'To see the site in your browser, allow access in the macOS prompt or in System Settings → Privacy & Security → Automation.',
   learnH:'Show me your phone', learnS:'Hold it inside the frame, back to the camera, for 3 seconds. I will remember how it looks and recognize it more reliably.', learnSkip:'Skip', learnDone:'Got your phone. You cannot hide it now.', learnBtn:'Teach my phone', relearnBtn:'Re-teach phone',
   parkBtn:'Thought for later (N)', parkH:'Thought for later', parkHint:'Write down the distracting thought and get straight back. I will show it after the session.', parkPh:'e.g. text mom, buy bread…', parkSaved:'Saved. We will get back to it after the session.', parkSum:'Thoughts for later', emCancel2:'Close (Esc)',
-  strictT:'🔒 Strict mode: only allowed apps', strictTs:'Like Guided Access, but for your Mac: open anything off the list and Sensei instantly sends you back to an allowed window and closes the blocked site. Exit with the emergency button or by explaining to your teacher what you did.',
+  strictT:'🔒 Strict mode: only allowed apps', strictTs:'Like Guided Access, but for your Mac: open anything off the list and Lock In instantly sends you back to an allowed window and closes the blocked site. Exit with the emergency button or by explaining to your teacher what you did.',
   allowAppsL:'Allowed apps (tap to select)', appsRefresh:'↻ Refresh running apps', allowSitesL:'Allowed sites (comma separated)', allowSitesPh:'e.g. docs.google.com, stackoverflow.com, github.com',
-  strictNote:'Needs the Sensei server. To close sites, macOS will ask once for permission to control your browser.', strictNeedServer:'Strict mode works only with the Sensei server — the session runs without it.',
+  strictNote:'Needs the Lock In server. To close sites, macOS will ask once for permission to control your browser.', strictNeedServer:'Strict mode works only with the Lock In server — the session runs without it.',
   strictBlocked:'Not now. “{app}” is not on your allowed list.', strictSiteBlocked:'{d} is closed for this session.', feynBtn:'🎓 Earn a 10-minute break', strictExit:'🔓 Leave strict mode', strictOff:'Strict mode is off for the rest of the session.',
   fyIntroH_end:'Want to finish early? Explain first', fyIntroH_break:'A 10-minute break — for an explanation', fyIntroP:'In 60 seconds, explain in your own words what you just learned or did for your goal “{g}”. Speak aloud (I am listening) or type. Then I will ask one question to check your understanding.',
   fyStart:'Start (60 seconds)', fyExplainH:'Explain…', fyExplainP:'Speak or type. The more specific, the better.', fyDone:'Done', fyThinking:'Your teacher is thinking…', fyAnswerH:'Teacher’s question', fyAnswer:'Answer',
@@ -770,10 +770,10 @@ en:{
   st_think:'THINKING 🤔', st_write:'WRITING ✍️', driftSay:'I sense you starting to drift. Back to “{g}”.', paperOffer:'Done writing? Hold your notebook up to the camera — press “📄 Check notebook” and I will look for mistakes.',
   needGoal:'Set a session goal first — what will be done by the end?', checkQ2:'Goal: “{g}”. Did you achieve it?', goalStat:'Goals achieved: {d} of {n}',
   chatPh:'Ask your teacher: “can I go to the toilet?”…', noMic:'Voice input is not supported in this browser — type instead.', micHint:'Speak…',
-  phH:'Phone', phPair:'📱 Connect phone', phPairSetup:'📱 Connect your phone to Sensei', phSleep:'off — exactly right 👍', phWoke:'Your phone just turned on. Unless it is a call, switch it off and put it down.', phHeld:'screen off — checking…', phNone:'not connected', phOk:'lying in place', phHidden:'left the Sensei screen!', phMoving:'in your hands!', phLost:'no connection',
+  phH:'Phone', phPair:'📱 Connect phone', phPairSetup:'📱 Connect your phone to Lock In', phSleep:'off — exactly right 👍', phWoke:'Your phone just turned on. Unless it is a call, switch it off and put it down.', phHeld:'screen off — checking…', phNone:'not connected', phOk:'lying in place', phHidden:'left the Lock In screen!', phMoving:'in your hands!', phLost:'no connection',
   pairAlt:'If it does not open, the phone is on another network. Join the same Wi-Fi as the Mac, or try a backup address:',
-  pairH:'Connect your phone', pairDone:'Done', pairNoServer:'The Sensei server is not running, so the phone cannot connect. Run in the app folder: python3 sensei_server.py',
-  pairSteps:['Your phone and Mac must be on the same Wi-Fi.','Point the phone camera at the QR code and open the link.','You will see a certificate warning — normal for a local network. iPhone: “Show Details” → “visit this website”. Android: “Advanced” → “Proceed”.','Tap “Connect”.','Keep the Sensei page open, put the phone down and switch the screen off — that is how it should be. Turn it on or pick it up and Sensei will know at once.'],
+  pairH:'Connect your phone', pairDone:'Done', pairNoServer:'The Lock In server is not running, so the phone cannot connect. Run in the app folder: python3 lockin_server.py',
+  pairSteps:['Your phone and Mac must be on the same Wi-Fi.','Point the phone camera at the QR code and open the link.','You will see a certificate warning — normal for a local network. iPhone: “Show Details” → “visit this website”. Android: “Advanced” → “Proceed”.','Tap “Connect”.','Keep the Lock In page open, put the phone down and switch the screen off — that is how it should be. Turn it on or pick it up and Lock In will know at once.'],
   st_pass:'BREAK: {k} {t}', pk_toilet:'toilet', pk_water:'water', pk_pills:'medicine', pk_call:'call', pk_food:'snack', pk_break:'break', pk_stretch:'stretch', pk_other:'pause', ty_pass:'Allowed pause'
 }};
 
@@ -895,8 +895,8 @@ const BROWSERS = /^(chrome|google|safari|firefox|arc|edge|microsoft|opera|brave|
 /* ================= settings ================= */
 const settings = Object.assign({ strict:false, allowApps:[], allowSites:'', task:'', firstStep:'', phoneProfile:null, learnSkipped:false, dur:50, coach:'sensei', sens:1, voice:true, voiceName:'', paper:false, lang:'ru',
   screen:false, apps:APPS.map(a=>a.id), extra:'', ai:false, apiKey:'', aiModel:'claude-opus-5-5', aiEvery:60,
-  lock:false, care:true, sound:'off', vol:.4 }, store.get('sensei.settings', {}));
-const saveSettings = () => store.set('sensei.settings', settings);
+  lock:false, care:true, sound:'off', vol:.4 }, store.get('lockin.settings', {}));
+const saveSettings = () => store.set('lockin.settings', settings);
 const L = () => settings.lang;
 const t = (k, vars) => { let s = I18N[L()][k] ?? I18N.ru[k] ?? k; if(vars && typeof s==='string') for(const v in vars) s=s.split('{'+v+'}').join(vars[v]); return s; };
 const P = () => PERSONAS[settings.coach];
@@ -914,7 +914,7 @@ function applyI18n(){
   if(!modelsReady && !modelsErr) $('#msText').textContent=t('loadingNN');
   else if(modelsReady) $('#msText').textContent=t('nnReady'); else $('#msText').textContent=t('nnErr');
   fillVoices(); renderStats(); buildLegend(); showAgentNote();
-  if(!S) document.title = 'Sensei — ' + t('tagline');
+  if(!S) document.title = 'Lock In — ' + t('tagline');
 }
 
 function buildSetup(){
@@ -963,7 +963,7 @@ function buildSetup(){
 /* ================= history / stats ================= */
 const dayKey = ts => { const d=new Date(ts); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); };
 function renderStats(){
-  const hist = store.get('sensei.sessions', []);
+  const hist = store.get('lockin.sessions', []);
   const perDay = {};
   for(const s of hist){ const k=dayKey(s.ts); perDay[k]=(perDay[k]||0)+s.focused; }
   $('#sToday').textContent = Math.round((perDay[dayKey(Date.now())]||0)/60);
@@ -1106,8 +1106,8 @@ async function startSession(){
   const btn=$('#startBtn');
   if(!settings.task.trim()){ toast(t('needGoal')); const ti=$('#task'); ti.classList.remove('shake'); void ti.offsetWidth; ti.classList.add('shake'); ti.focus(); ti.scrollIntoView({block:'center'}); return; }
   btn.disabled=true;
-  // экран просим сразу — пока жив жест пользователя. С Sensei-сервером делиться экраном не нужно (кроме умной проверки Claude).
-  await pollAgent();   // свежие данные от Sensei-сервера: от них зависит, нужен ли «доступ к экрану» и строгий режим
+  // экран просим сразу — пока жив жест пользователя. С сервером Lock In делиться экраном не нужно (кроме умной проверки Claude).
+  await pollAgent();   // свежие данные от сервера Lock In: от них зависит, нужен ли «доступ к экрану» и строгий режим
   const needShare = settings.screen && (!agentOK() || (settings.ai && settings.apiKey));
   if(needShare && !scr.stream){ btn.textContent=t('screenAsk'); await requestScreen(); }
   if(!TEST){
@@ -1138,7 +1138,7 @@ async function startSession(){
   $('#calib').classList.add('on'); $('#paused').classList.remove('on'); $('#eyes').classList.remove('on'); $('#lockGate').classList.remove('on'); $('#learn').classList.remove('on');
   $('#learnBtn').textContent = t(settings.phoneProfile ? 'relearnBtn' : 'learnBtn');
   $('#pauseBtn').textContent=t('pause'); $('#sSound').value=settings.sound;
-  $('#notes').value = store.get('sensei.notes','');
+  $('#notes').value = store.get('lockin.notes','');
   $('#chatlog').innerHTML=''; updPhone();
   S.strictOn = settings.strict && agentOK(); document.body.classList.toggle('strict', S.strictOn);
   if(settings.strict && !S.strictOn) toast(t('strictNeedServer'));
@@ -1570,7 +1570,7 @@ function parseMenuApp(text){
   const tok=line.split(/\s+/).map(w=>w.replace(/^[^\p{L}]+|[^\p{L}\d.]+$/gu,'')).find(w=>/\p{L}{2,}/u.test(w));
   return tok || '';
 }
-/* --- Sensei-сервер (sensei_server.py): точное активное приложение и адрес вкладки --- */
+/* --- сервер Lock In (lockin_server.py): точное активное приложение и адрес вкладки --- */
 let agentLast=0, agentBusy=false;
 const agentOK = () => !!(scr.agent && scr.agent.ok && Date.now()-scr.agentAt<4000);
 async function pollAgent(now){
@@ -1583,12 +1583,12 @@ async function pollAgent(now){
   finally{ agentBusy=false; }
 }
 const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return ''; } };
-const agentOnSensei = a => a.browser && typeof a.url==='string' && a.url.startsWith(location.origin);
-const onSensei = () => agentOK() ? agentOnSensei(scr.agent) && document.visibilityState==='visible' : (document.hasFocus() && !document.hidden);
+const agentOnLockIn = a => a.browser && typeof a.url==='string' && a.url.startsWith(location.origin);
+const onLockIn = () => agentOK() ? agentOnLockIn(scr.agent) && document.visibilityState==='visible' : (document.hasFocus() && !document.hidden);
 function screenTick(now){
   if(!(settings.screen || (S && S.strictOn)) || !S || S.phase!=='run' || S.paused) return;
   if(agentOK()){
-    const a=scr.agent, here=agentOnSensei(a) || (/^sensei/i.test(a.app||''));
+    const a=scr.agent, here=agentOnLockIn(a) || (/^(lock ?in|sensei)/i.test(a.app||''));
     const key=(a.app||'')+'|'+hostOf(a.url||'');
     if(S.lastApp && key!==S.lastApp && !here) S.appSwitches.push(now);
     S.lastApp=key; while(S.appSwitches.length && now-S.appSwitches[0]>60000) S.appSwitches.shift();
@@ -1604,7 +1604,7 @@ function screenTick(now){
   }
   scr.agentBad=null;
   if(!scr.stream) return;
-  if(onSensei()){
+  if(onLockIn()){
     if(!scr.here){ scr.here=true; scr.ocrBad=null; scr.aiBad=null; updScr(); }
     return;
   }
@@ -1642,7 +1642,7 @@ async function runOcr(){
     }
     try{ const tc=document.createElement('canvas'); tc.width=320; tc.height=Math.round(320*h/w); tc.getContext('2d').drawImage(src,0,0,tc.width,tc.height); scr.thumb=tc.toDataURL('image/jpeg',.6); }catch{}
     f.close();
-    if(onSensei()) return;
+    if(onLockIn()) return;
     scr.app = app; scr.domains = domains;
     scr.ocrBad = matchDistraction(app, domains); scr.checked = true; scr.lastCheck = Date.now();
   }catch(e){ console.warn('OCR', e); }
@@ -1680,7 +1680,7 @@ async function runAi(){
     };
     if(settings.aiModel!=='claude-haiku-5-5'){ req.betas=['server-side-fallback-2026-07-01']; req.fallbacks='default'; }
     const r = await client.beta.messages.create(req);
-    if(r.stop_reason==='refusal' || onSensei()) return;
+    if(r.stop_reason==='refusal' || onLockIn()) return;
     const tb = r.content.find(b=>b.type==='text'); if(!tb) return;
     const j = JSON.parse(tb.text);
     scr.aiBad = j.on_task ? null : (j.app || '?'); scr.aiReason = j.reason || ''; scr.aiErr=''; scr.checked=true;
@@ -1757,8 +1757,8 @@ $('#emCancel').onclick = () => { $('#emModal').classList.remove('on'); if(S&&S.l
   for(const ev of ['pointerup','pointerleave','pointercancel']) b.addEventListener(ev,reset);
 })();
 let notesT=0;
-$('#notes').oninput = e => { clearTimeout(notesT); notesT=setTimeout(()=>store.set('sensei.notes', e.target.value), 400); };
-$('#notesDl').onclick = () => { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([$('#notes').value],{type:'text/plain;charset=utf-8'})); a.download='sensei-notes.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+$('#notes').oninput = e => { clearTimeout(notesT); notesT=setTimeout(()=>store.set('lockin.notes', e.target.value), 400); };
+$('#notesDl').onclick = () => { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([$('#notes').value],{type:'text/plain;charset=utf-8'})); a.download='lockin-notes.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
 
 /* ================= UI ================= */
 function stateColorName(){ if(!S || S.phase==='calib' || S.eye) return 'cy'; if(S.cur==='phone'||S.cur==='escape') return 'bad'; if(S.cur==='screen') return 'pink'; if(S.cur!=='focus') return 'warn'; return S.flow>=900?'gold':'ok'; }
@@ -1786,7 +1786,7 @@ function setUI(now,stale){
   $('#cPct').textContent = (S.active>1?Math.round(S.focused/S.active*100):100)+'%';
   const ab=$('#alertb');
   if(S.cur!=='focus' && !S.paused && !S.pass){ ab.textContent=alertTxt; ab.className='alertb show'+(S.cur==='phone'||S.cur==='escape'?'':S.cur==='screen'?' scr':' warn'); } else ab.classList.remove('show');
-  document.title = `${timeStr} · ${stTxt} — Sensei`;
+  document.title = `${timeStr} · ${stTxt} — Lock In`;
   if(now-(setUI.tl||0)>1000){ setUI.tl=now; drawTimeline($('#tl')); }
   const db=$('#dbgbox');
   if(M.has && db.classList.contains('on')) db.textContent = `yaw ${(M.yaw-S.base.yaw).toFixed(0)}°  pitch ${(M.pitch-S.base.pitch).toFixed(0)}°\neyeDown ${(M.eyeDown-S.base.eyeDown).toFixed(2)}  blink ${M.blink.toFixed(2)}\nclose ${(M.w/S.base.w).toFixed(2)}  slouch ${(M.ny-S.base.ny).toFixed(2)}\nphone ${S.phoneHits.length}  hold ${Object.entries(S.hold).map(([k,v])=>k.slice(0,2)+v.toFixed(1)).join(' ')}`;
@@ -2037,8 +2037,8 @@ function toggleMic(){
 }
 $('#micBtn').onclick=toggleMic;
 
-/* ================= телефон: связь через Sensei-сервер ================= */
-// state от сервера: here — страница Sensei открыта; sleep — экран погас, телефон лежал (так и надо);
+/* ================= телефон: связь через сервер Lock In ================= */
+// state от сервера: here — страница Lock In открыта; sleep — экран погас, телефон лежал (так и надо);
 // held — экран погас / ушёл в другое приложение, когда телефон был в руках. Что это было, решаем по камере (phoneResolve).
 // eff — итог: here / sleep / held (ещё решаем) / used (пользовался) / none
 const PH = { lastId:-1, conn:false, paired:false, state:'none', eff:'none', prevEff:'none', hideN:0, verdict:{}, res:null, usedN:0,
@@ -2052,7 +2052,7 @@ function handlePhone(p){
   if(mv && !PH.moving) PH.movingSince=performance.now();
   PH.moving=mv;
   phoneEff();
-  // телефон был выключен (или в другом приложении) и снова открыл Sensei — значит, его взяли в руки
+  // телефон был выключен (или в другом приложении) и снова открыл Lock In — значит, его взяли в руки
   // (если телефон просто пропал из сети на пару секунд — это не «включил», молчим)
   if(S && S.phase==='run' && ['sleep','held','used'].includes(PH.prevEff) && !PH.prevSilent && PH.eff==='here'
      && !(S.pass && S.pass.kind==='call') && performance.now()-(PH.wokeAt||-1e12)>15000){
@@ -2131,7 +2131,7 @@ $('#phBtn').onclick=openPair; $('#phBtnSetup').onclick=openPair;
 $('#pairClose').onclick=()=>$('#pairModal').classList.remove('on');
 
 /* ================= строгий режим (как «Гид-доступ» для Mac) ================= */
-const SYS_APPS = /^(loginwindow|Dock|Control Center|Notification Center|SystemUIServer|Spotlight|ScreenSaverEngine|universalaccessd|WindowManager|Wallpaper|coreautha|SecurityAgent|UserNotificationCenter|Sensei)$/i;
+const SYS_APPS = /^(loginwindow|Dock|Control Center|Notification Center|SystemUIServer|Spotlight|ScreenSaverEngine|universalaccessd|WindowManager|Wallpaper|coreautha|SecurityAgent|UserNotificationCenter|Lock ?In|Sensei)$/i;
 async function loadApps(){
   try{
     const j=await (await fetch('/api/apps',{cache:'no-store'})).json();
@@ -2156,7 +2156,7 @@ function strictTick(a, here, now){
     S.lastEnforce=now;
     if(bad.kind==='site') enforce({action:'block_tab', browser:app});
     else if(S.lastAllowedApp) enforce({action:'app', app:S.lastAllowedApp});
-    else enforce({action:'sensei', browser:a.browser?app:null});
+    else enforce({action:'lockin', browser:a.browser?app:null});
     sfx.alarm(); say(bad.kind==='site' ? t('strictSiteBlocked',{d:bad.label}) : t('strictBlocked',{app:bad.label}));
   }
   return bad.label;
@@ -2301,7 +2301,7 @@ function closePark(){ if(S) S.parking=false; $('#parkModal').classList.remove('o
 $('#parkBtn').onclick=openPark; $('#parkClose').onclick=closePark;
 $('#parkIn').addEventListener('keydown',e=>{
   if(e.key==='Escape'){ closePark(); }
-  if(e.key==='Enter'){ const v=e.target.value.trim(); if(v && S){ S.parked.push(v); const arr=store.get('sensei.parked',[]); arr.push({ts:Date.now(),text:v}); store.set('sensei.parked',arr.slice(-200)); toast(t('parkSaved')); } closePark(); }
+  if(e.key==='Enter'){ const v=e.target.value.trim(); if(v && S){ S.parked.push(v); const arr=store.get('lockin.parked',[]); arr.push({ts:Date.now(),text:v}); store.set('lockin.parked',arr.slice(-200)); toast(t('parkSaved')); } closePark(); }
 });
 async function showAgentNote(){
   const n=$('#agentNote'); if(!n) return;
@@ -2350,14 +2350,14 @@ function finish(reason){
   document.querySelectorAll('#checkRow .pill').forEach(b=>b.classList.remove('on'));
   savedIdx=-1;
   if(S.active>=20){
-    const h=store.get('sensei.sessions',[]);
+    const h=store.get('lockin.sessions',[]);
     h.push({ts:Date.now(),task:settings.task,focused:Math.round(S.focused),active:Math.round(S.active),pct,rank,dist:S.total,best:Math.round(S.best),phone:S.counts.phone,screen:S.counts.screen,escape:S.counts.escape,emergency:S.emergency,parked:S.parked});
-    const trimmed=h.slice(-300); store.set('sensei.sessions',trimmed); savedIdx=trimmed.length-1;
+    const trimmed=h.slice(-300); store.set('lockin.sessions',trimmed); savedIdx=trimmed.length-1;
   }
   $('#checkin').style.display = savedIdx>=0 ? '' : 'none';
   $('#checkQ').textContent = t('checkQ2',{g:settings.task});
   $('#summary').classList.add('on');
-  document.body.dataset.state='idle'; document.title='Sensei — '+t('tagline');
+  document.body.dataset.state='idle'; document.title='Lock In — '+t('tagline');
   const doneS=S; requestAnimationFrame(()=>drawTimeline($('#stl'),doneS));
   if(rank!=='—'){ sfx.good(); say(verdict); }
   window.__last=S; S=null; lastPush=0; pushSession(performance.now());
@@ -2365,7 +2365,7 @@ function finish(reason){
 $('#checkRow').onclick = e => {
   const b=e.target.closest('.pill'); if(!b || savedIdx<0) return;
   document.querySelectorAll('#checkRow .pill').forEach(x=>x.classList.toggle('on',x===b));
-  const h=store.get('sensei.sessions',[]); if(h[savedIdx]){ h[savedIdx].done=b.dataset.v; store.set('sensei.sessions',h); }
+  const h=store.get('lockin.sessions',[]); if(h[savedIdx]){ h[savedIdx].done=b.dataset.v; store.set('lockin.sessions',h); }
   say(lines().done[b.dataset.v]);
 };
 $('#againBtn').onclick=()=>{ try{speechSynthesis.cancel()}catch{}; $('#summary').classList.remove('on'); $('#session').classList.remove('active'); $('#setup').classList.add('active'); renderStats(); window.scrollTo(0,0); };

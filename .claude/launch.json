@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "sensei",
+      "name": "lockin",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["sensei_server.py"],
+      "runtimeArgs": ["lockin_server.py"],
       "port": 5173
     }
   ]

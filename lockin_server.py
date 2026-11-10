@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sensei — локальный сервер.
+"""Lock In — локальный сервер.
 
 • http://localhost:5173 — приложение (только этот компьютер).
   /api/state   — активное приложение на Mac, адрес вкладки браузера, простой клавиатуры и состояние телефона.
@@ -9,7 +9,7 @@
   HTTPS нужен, чтобы телефон дал датчик движения и не гасил экран. Сертификат самоподписанный,
   поэтому телефон один раз предупредит — это нормально для локальной сети.
 
-Ничего не уходит в интернет. Без сторонних библиотек. Запуск:  python3 sensei_server.py
+Ничего не уходит в интернет. Без сторонних библиотек. Запуск:  python3 lockin_server.py
 """
 import json
 import os
@@ -24,10 +24,12 @@ import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-PORT = int(os.environ.get("SENSEI_PORT", "5173"))
-PHONE_PORT = int(os.environ.get("SENSEI_PHONE_PORT", "5174"))
+PORT = int(os.environ.get("LOCKIN_PORT", os.environ.get("SENSEI_PORT", "5173")))
+PHONE_PORT = int(os.environ.get("LOCKIN_PHONE_PORT", os.environ.get("SENSEI_PHONE_PORT", "5174")))
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(ROOT, ".sensei")
+DATA = os.path.join(ROOT, ".lockin")
+if not os.path.exists(DATA) and os.path.isdir(os.path.join(ROOT, ".sensei")):
+    os.rename(os.path.join(ROOT, ".sensei"), DATA)  # данные старой версии (Sensei): сертификат и код телефона
 IS_MAC = sys.platform == "darwin"
 
 CHROMIUM = {"Google Chrome", "Google Chrome Canary", "Arc", "Brave Browser", "Microsoft Edge",
@@ -82,7 +84,7 @@ def running_apps():
     return sorted(set(apps), key=str.lower)
 
 
-SENSEI_PREFIX = f"http://localhost:{os.environ.get('SENSEI_PORT', '5173')}"
+APP_PREFIX = f"http://localhost:{PORT}"
 
 
 def enforce(action, app=None, browser=None):
@@ -91,21 +93,21 @@ def enforce(action, app=None, browser=None):
         return False
     if action == "app" and app:
         return run(["open", "-a", app], timeout=3)[0] == 0
-    if action == "sensei":
+    if action in ("lockin", "sensei"):
         for b in [browser] + sorted(CHROMIUM | SAFARI):
             if not b or b not in (CHROMIUM | SAFARI):
                 continue
             if b in SAFARI:
-                body = f'repeat with w in windows\nrepeat with tb in tabs of w\nif URL of tb starts with "{SENSEI_PREFIX}" then\nset current tab of w to tb\nset index of w to 1\nactivate\nreturn "ok"\nend if\nend repeat\nend repeat'
+                body = f'repeat with w in windows\nrepeat with tb in tabs of w\nif URL of tb starts with "{APP_PREFIX}" then\nset current tab of w to tb\nset index of w to 1\nactivate\nreturn "ok"\nend if\nend repeat\nend repeat'
             else:
-                body = f'repeat with w in windows\nset i to 0\nrepeat with tb in tabs of w\nset i to i + 1\nif URL of tb starts with "{SENSEI_PREFIX}" then\nset active tab index of w to i\nset index of w to 1\nactivate\nreturn "ok"\nend if\nend repeat\nend repeat'
+                body = f'repeat with w in windows\nset i to 0\nrepeat with tb in tabs of w\nset i to i + 1\nif URL of tb starts with "{APP_PREFIX}" then\nset active tab index of w to i\nset index of w to 1\nactivate\nreturn "ok"\nend if\nend repeat\nend repeat'
             script = f'if application "{b}" is running then\ntell application "{b}"\n{body}\nend tell\nend if\nreturn "none"'
             code, out, _ = run(["osascript", "-e", script], timeout=3)
             if code == 0 and out == "ok":
                 return True
         return False
     if action == "block_tab" and browser in (CHROMIUM | SAFARI):
-        target = f"{SENSEI_PREFIX}/blocked.html"
+        target = f"{APP_PREFIX}/blocked.html"
         prop = "current tab" if browser in SAFARI else "active tab"
         return run(["osascript", "-e", f'tell application "{browser}" to set URL of {prop} of front window to "{target}"'], timeout=3)[0] == 0
     return False
@@ -120,7 +122,7 @@ def idle_seconds():
 # ---------------------------------------------------------------- общее состояние
 LOCK = threading.Lock()
 def load_token():
-    """Код подключения телефона хранится в .sensei/token — после перезапуска сервера телефон не надо подключать заново."""
+    """Код подключения телефона хранится в .lockin/token — после перезапуска сервера телефон не надо подключать заново."""
     os.makedirs(DATA, exist_ok=True)
     f = os.path.join(DATA, "token")
     if os.path.exists(f):
@@ -149,7 +151,7 @@ def phone_event(kind, extra=None):
 
 
 def phone_view():
-    """state: here — страница Sensei открыта; sleep — экран погас, когда телефон лежал (так и надо);
+    """state: here — страница Lock In открыта; sleep — экран погас, когда телефон лежал (так и надо);
     held — экран погас или ушли в другое приложение, когда телефон был в руках: это может быть и «выключил»,
     и «ушёл в Telegram». Что именно — решает Mac по камере; none — не подключали."""
     now = time.time()
@@ -231,7 +233,7 @@ def ensure_cert(ips):
         return cert, key, False
     san = ",".join([f"IP:{ip}" for ip in ips] + ["IP:127.0.0.1", "DNS:localhost"])
     code, _, err = run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", cert,
-                        "-days", "825", "-subj", "/CN=Sensei local", "-addext", f"subjectAltName={san}"], timeout=30)
+                        "-days", "825", "-subj", "/CN=Lock In local", "-addext", f"subjectAltName={san}"], timeout=30)
     if code != 0:
         print("Не удалось создать сертификат для телефона:", err[-300:])
         return None, None, False
@@ -412,7 +414,7 @@ class PhoneHandler(Base):
 
 def main():
     local = ThreadingHTTPServer(("127.0.0.1", PORT), LocalHandler)
-    print(f"Sensei: http://localhost:{PORT}")
+    print(f"Lock In: http://localhost:{PORT}")
     ips = all_ips()
     cert, key, _ = ensure_cert(ips)
     if cert:
