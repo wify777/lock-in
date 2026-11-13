@@ -3,21 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🔒 Заблокировано · Lock In</title>
+<title>Не сейчас · Lock In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Onest:wght@400;700&family=Unbounded:wght@800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#06080c;--tx:#e9edf5;--mu:#8791a5;--bad:#ff4d5e;--ok:#3ef2b0;--cy:#4cc9f0}
 *{box-sizing:border-box;margin:0}
-body{min-height:100vh;display:grid;place-items:center;background:radial-gradient(900px 600px at 50% 30%,#2a0a12 0,transparent 70%),var(--bg);color:var(--tx);font:17px/1.5 -apple-system,system-ui,sans-serif;text-align:center;padding:24px}
-h1{font-size:clamp(34px,6vw,64px);letter-spacing:-.03em}
-p{color:var(--mu);margin:14px auto 28px;max-width:46ch}
-a{display:inline-block;padding:16px 28px;border-radius:16px;font-weight:700;color:#04110c;text-decoration:none;background:linear-gradient(90deg,var(--ok),var(--cy))}
+body{min-height:100vh;display:grid;place-items:center;background:linear-gradient(180deg,#193024,#0f1e18);color:#f3efe6;font:17px/1.5 'Onest',-apple-system,system-ui,sans-serif;text-align:center;padding:24px}
+.wm{font:800 15px 'Unbounded',sans-serif;letter-spacing:.06em;color:#e6ff4f;margin-bottom:34px}
+h1{font:800 clamp(40px,8vw,84px)/1 'Unbounded',sans-serif;letter-spacing:-.02em}
+h1 span{display:inline-block;padding:.04em .22em .1em;background:#ff5a4d;color:#2a0704;border-radius:8px;transform:rotate(-2deg)}
+.hand{font:700 clamp(24px,3.4vw,34px)/1.15 'Caveat',cursive;margin:30px auto 8px;max-width:26ch}
+p{color:#9bb0a5;margin:0 auto 32px;max-width:46ch}
+a{display:inline-block;padding:18px 30px;border-radius:14px;font:800 16px 'Unbounded',sans-serif;color:#16241e;text-decoration:none;background:#e6ff4f;box-shadow:0 6px 0 #97a92e}
+a:active{transform:translateY(5px);box-shadow:0 1px 0 #97a92e}
 </style>
 </head>
 <body>
 <div>
-  <div style="font-size:72px">🔒</div>
-  <h1>Не сейчас</h1>
-  <p>Строгий режим Lock In: этот сайт не входит в разрешённые на эту сессию. Вернись к цели — или заработай перерыв, объяснив учителю, что ты уже сделал.</p>
+  <div class="wm">LOCK IN</div>
+  <h1><span>Не сейчас</span></h1>
+  <div class="hand">Этот сайт подождёт. Цель — нет.</div>
+  <p>Строгий режим Lock In: сайта нет в списке разрешённых на эту сессию. Вернись к работе или заработай перерыв — объясни учителю, что ты уже сделал.</p>
   <a href="http://localhost:5173/">Вернуться в Lock In</a>
 </div>
 </body>

@@ -9,7 +9,8 @@
   HTTPS нужен, чтобы телефон дал датчик движения и не гасил экран. Сертификат самоподписанный,
   поэтому телефон один раз предупредит — это нормально для локальной сети.
 
-Ничего не уходит в интернет. Без сторонних библиотек. Запуск:  python3 lockin_server.py
+Ничего не уходит в интернет. Без сторонних библиотек.
+Запуск:  python3 lockin_server.py --open   (или двойной щелчок по «Lock In.command»)
 """
 import json
 import os
@@ -21,8 +22,10 @@ import subprocess
 import sys
 import threading
 import time
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+import posixpath
+from urllib.parse import parse_qs, unquote, urlparse
 
 PORT = int(os.environ.get("LOCKIN_PORT", os.environ.get("SENSEI_PORT", "5173")))
 PHONE_PORT = int(os.environ.get("LOCKIN_PHONE_PORT", os.environ.get("SENSEI_PHONE_PORT", "5174")))
@@ -278,17 +281,46 @@ def read_json(h):
         return {}
 
 
+# Что можно отдавать как файлы. Всё остальное (в том числе .lockin с ключом и кодом телефона, .git, исходники сервера) — 404.
+CSP = ("default-src 'self'; "
+       "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; "
+       "img-src 'self' data: blob:; media-src 'self' blob: mediastream:; "
+       "connect-src 'self' https://api.anthropic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+       "https://storage.googleapis.com https://tessdata.projectnaptha.com blob: data:; "
+       "worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'")
+
+
 class Base(SimpleHTTPRequestHandler):
+    STATIC = frozenset()      # у каждого обработчика свой список разрешённых файлов
+
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=ROOT, **kw)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", CSP)
         super().end_headers()
+
+    def send_head(self):
+        """Единственное место, откуда отдаются файлы (GET и HEAD). Путь сначала раскодируется и нормализуется,
+        потом сверяется со списком: «%2e», «..» и прочие обходы не работают."""
+        path = posixpath.normpath(unquote(urlparse(self.path).path))
+        if path == "/":
+            path = "/index.html"
+        if path not in self.STATIC:
+            send_json(self, {"error": "not_found"}, 404)
+            return None
+        self.path = path
+        return super().send_head()
 
     def log_message(self, fmt, *args):
         msg = fmt % args if args else str(fmt)
         if "/api/" not in msg:
+            msg = re.sub(r"([?&]t=)[^&\s\"]+", r"\1***", msg)     # код подключения телефона в журнал не пишем
             super().log_message("%s", msg)
 
     # общие обработчики телефона
@@ -344,8 +376,33 @@ class Base(SimpleHTTPRequestHandler):
 
 class LocalHandler(Base):
     """Только 127.0.0.1: приложение и закрытые данные о Mac."""
+    STATIC = frozenset({"/index.html", "/phone.html", "/blocked.html", "/tests/harness.js"})
+
+    def guard(self, post=False):
+        """Защита от чужих сайтов: открытая в браузере страница не должна управлять локальным сервером.
+        • Host — только localhost/127.0.0.1 на нашем порту (иначе «DNS rebinding» превращает чужой сайт в «своего»).
+        • POST — только JSON, и если браузер прислал Origin, он должен быть нашим (простые кросс-доменные запросы отсекаются)."""
+        ok_hosts = {f"localhost:{PORT}", f"127.0.0.1:{PORT}", f"[::1]:{PORT}"}
+        if (self.headers.get("Host") or "").lower() not in ok_hosts:
+            send_json(self, {"error": "bad_host"}, 403)
+            return False
+        if post:
+            origin = self.headers.get("Origin")
+            if origin and origin.lower() not in {f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}", f"http://[::1]:{PORT}"}:
+                send_json(self, {"error": "bad_origin"}, 403)
+                return False
+            if not (self.headers.get("Content-Type") or "").lower().startswith("application/json"):
+                send_json(self, {"error": "json_only"}, 415)
+                return False
+        return True
+
+    def do_HEAD(self):
+        if self.guard():
+            super().do_HEAD()
 
     def do_GET(self):
+        if not self.guard():
+            return
         p = urlparse(self.path).path
         if p == "/api/state":
             return send_json(self, mac_state())
@@ -359,11 +416,11 @@ class LocalHandler(Base):
             return send_json(self, {"apps": running_apps() if IS_MAC else []})
         if p == "/favicon.ico":
             self.send_response(204); self.end_headers(); return
-        if p == "/":
-            self.path = "/index.html"
         return super().do_GET()
 
     def do_POST(self):
+        if not self.guard(post=True):
+            return
         p = urlparse(self.path).path
         if p == "/api/session":
             d = read_json(self)
@@ -384,6 +441,7 @@ class LocalHandler(Base):
 class PhoneHandler(Base):
     """Доступно из Wi-Fi, но отдаёт только страницу телефона и API телефона с кодом."""
     timeout = 15  # «молчащие» соединения закрываются сами
+    STATIC = frozenset({"/phone.html"})      # с телефона виден только он (и пинг по коду)
 
     def setup(self):
         self.request.settimeout(self.timeout)
@@ -406,6 +464,13 @@ class PhoneHandler(Base):
             return super().do_GET()
         return send_json(self, {"error": "forbidden"}, 403)
 
+    def do_HEAD(self):
+        p = urlparse(self.path).path
+        if p in ("/phone", "/phone.html"):
+            self.path = "/phone.html"
+            return super().do_HEAD()
+        return send_json(self, {"error": "forbidden"}, 403)
+
     def do_POST(self):
         if urlparse(self.path).path.startswith("/api/phone/"):
             return self.phone_api("POST")
@@ -413,8 +478,18 @@ class PhoneHandler(Base):
 
 
 def main():
-    local = ThreadingHTTPServer(("127.0.0.1", PORT), LocalHandler)
-    print(f"Lock In: http://localhost:{PORT}")
+    url = f"http://localhost:{PORT}"
+    try:
+        local = ThreadingHTTPServer(("127.0.0.1", PORT), LocalHandler)
+    except OSError:
+        # порт занят — скорее всего, Lock In уже запущен: просто открываем его
+        print(f"Lock In уже запущен: {url}")
+        if "--open" in sys.argv:
+            webbrowser.open(url)
+        return
+    print(f"Lock In: {url}")
+    if "--open" in sys.argv:
+        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     ips = all_ips()
     cert, key, _ = ensure_cert(ips)
     if cert:
